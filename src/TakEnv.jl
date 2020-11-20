@@ -4,7 +4,7 @@ module TakEnv
 using Luxor
 
 export Action, Result, Board, CarryType
-export empty_board, enumerate_actions, apply_action!, check_win, render_board, random_game
+export empty_board, enumerate_actions, apply_action!, check_win, render_board, random_game, opponent_player
 export Stone, Player, Direction, ActionType, ResultType
 
 # const FIELD_SIZE = 8
@@ -376,7 +376,7 @@ function enumerate_actions(board::Board, player::Player)::Array{Action,1}
 end
 
 function enumerate_actions(board::Board)::Vector{Action}
-  vcat(enumerate_actions(board, white::Player), enumerate_actions(board, black::Player))
+  union(enumerate_actions(board, white::Player), enumerate_actions(board, black::Player))
 end
 
 

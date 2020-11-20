@@ -96,8 +96,12 @@ using ..TakEnv
 
     @test begin
       board = testboard()
-      enumerate_actions(board) == vcat(enumerate_actions(board, TakEnv.white::Player), enumerate_actions(board, TakEnv.black::Player))
+      issubset(enumerate_actions(board, TakEnv.white::Player), enumerate_actions(board)) &&
+      issubset(enumerate_actions(board, TakEnv.black::Player), enumerate_actions(board))
     end
+
+    @test unique(enumerate_actions(testboard())) == enumerate_actions(testboard())
+    @test unique(enumerate_actions(testboard(), TakEnv.white::Player)) == enumerate_actions(testboard(), TakEnv.white::Player)
 
     # These tests only work for a 5x5 board
     if TakEnv.FIELD_SIZE == 5
