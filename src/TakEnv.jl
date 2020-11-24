@@ -6,6 +6,7 @@ using Luxor
 export Action, Result, Board, CarryType
 export empty_board, enumerate_actions, apply_action!, check_win, render_board, random_game, opponent_player
 export Stone, Player, Direction, ActionType, ResultType
+export white, black
 
 # const FIELD_SIZE = 8
 # const NORMAL_PIECE_COUNT = 50
@@ -22,6 +23,9 @@ export Stone, Player, Direction, ActionType, ResultType
 const FIELD_SIZE = 5
 const NORMAL_PIECE_COUNT = 21
 const CAPSTONE_COUNT = 1
+
+# A score which is added to black when evaluating a win to compensate first-player-advantage
+const KOMI = 2
 
 # The highest possible tower is all normal pieces stacked as flat stones with a capstone on it
 const FIELD_HEIGHT = NORMAL_PIECE_COUNT*2+1
@@ -389,53 +393,55 @@ function apply_action!(board::Board, action::Action, player::Player)
   total_stones = sum([i[2][2] for i in enumerate(all_statistics)])
   
   if action.action_type == placement::ActionType
-      if total_stones < 2 # The first two rounds you place the opponents stone
-          board[action.pos[1], action.pos[2], 1] = (action.stone, opponent_player(player))
-      else
-          board[action.pos[1], action.pos[2], 1] = (action.stone, player)
-      end
+    @assert isnothing(board[action.pos[1], action.pos[2], 1])
+    if total_stones < 2 # The first two rounds you place the opponents stone
+        board[action.pos[1], action.pos[2], 1] = (action.stone, opponent_player(player))
+    else
+        board[action.pos[1], action.pos[2], 1] = (action.stone, player)
+    end
   else
-      # Treat the (-1,0,0,0) carry separately
-      if action.carry[1] == -1
-          newpos = translate_pos(action.pos, action.dir)
-          for z in 1:FIELD_HEIGHT
-              board[newpos[1], newpos[2], z] = board[action.pos[1], action.pos[2], z]
-              board[action.pos[1], action.pos[2], z] = nothing
-          end
-      else
-          # First pick up stones from the origin stack
-          picked_up_stack = []
-          for z in reverse(1:FIELD_HEIGHT)
-              if !isnothing(board[action.pos[1], action.pos[2], z])
-                  push!(picked_up_stack, board[action.pos[1], action.pos[2], z])
-                  board[action.pos[1], action.pos[2], z] = nothing
-              end
-              if length(picked_up_stack) >= sum(action.carry)
-                  break
-              end
-          end
-                      
-          
-          # Then loop through the carry and drop according to the carry
-          curpos = action.pos
-          for c in action.carry
-              curpos = translate_pos(curpos, action.dir)
-              if c == 0
-                  continue
-              end
-              
-              top = get_stack_height(board, curpos)
-              
-                  if top >= 1 && stone_type(board[curpos[1], curpos[2], top]) == stand::Stone
-                      @assert stone_type(last(picked_up_stack)) == cap::Stone
-                      board[curpos[1], curpos[2], top] = (flat::Stone, stone_player(board[curpos[1], curpos[2], top]))
-                  end
-              
-              for i in 1:c
-                  board[curpos[1], curpos[2], top+i] = pop!(picked_up_stack)
-              end
-          end
-      end
+    # Treat the (-1,0,0,0) carry separately
+    if action.carry[1] == -1
+        newpos = translate_pos(action.pos, action.dir)
+        for z in 1:FIELD_HEIGHT
+            board[newpos[1], newpos[2], z] = board[action.pos[1], action.pos[2], z]
+            board[action.pos[1], action.pos[2], z] = nothing
+        end
+    else
+        # First pick up stones from the origin stack
+        picked_up_stack = []
+        for z in reverse(1:FIELD_HEIGHT)
+            if !isnothing(board[action.pos[1], action.pos[2], z])
+                push!(picked_up_stack, board[action.pos[1], action.pos[2], z])
+                board[action.pos[1], action.pos[2], z] = nothing
+            end
+            if length(picked_up_stack) >= sum(action.carry)
+                break
+            end
+        end
+        
+        @assert(length(picked_up_stack) == sum(action.carry))
+        
+        # Then loop through the carry and drop according to the carry
+        curpos = action.pos
+        for c in action.carry
+            curpos = translate_pos(curpos, action.dir)
+            if c == 0
+                continue
+            end
+            
+            top = get_stack_height(board, curpos)
+            
+            if top >= 1 && stone_type(board[curpos[1], curpos[2], top]) == stand::Stone
+                @assert stone_type(last(picked_up_stack)) == cap::Stone
+                board[curpos[1], curpos[2], top] = (flat::Stone, stone_player(board[curpos[1], curpos[2], top]))
+            end
+            
+            for i in 1:c
+                board[curpos[1], curpos[2], top+i] = pop!(picked_up_stack)
+            end
+        end
+    end
   end
       
   board
@@ -501,7 +507,7 @@ function check_player_out_of_stones(board::Board)::Bool
 end
   
 function count_flats(board::Board)::Dict{Player, Int}
-  retval = Dict(white::Player => 0, black::Player => 0)
+  retval = Dict(white::Player => 0, black::Player => KOMI)
   for x in 1:FIELD_SIZE
       for y in 1:FIELD_SIZE
           top = get_top_stone(board, (x,y))

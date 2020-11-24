@@ -7,7 +7,7 @@ using ..Encoder
 using ..MCTS
 using Test
 using Distributions
-Float = Float64
+Float = Float32
 
 @testset "MCTS.jl" begin
   hparams = Dict(
@@ -21,7 +21,7 @@ Float = Float64
   HParams = typeof(hparams)
 
   function dummy_model(state, player)
-    logits = transpose(rand(Dirichlet(action_onehot_encoding_length, 0.1), length(state)))
+    logits = rand(Dirichlet(action_onehot_encoding_length, 0.1), length(state))
     values = rand(length(state))
     return logits, values
   end
@@ -40,6 +40,21 @@ Float = Float64
       @test isapprox(sum(stats.probs), 1)
     end
     @test summed > length(storage)
+  end
+
+  @testset "merge storages" begin
+    a = MCTSStorage()
+    a = mcts_search(hparams, a, compress_board(empty_board()), white::Player, dummy_model)
+    b = MCTSStorage()
+    b = mcts_search(hparams, b, compress_board(empty_board()), white::Player, dummy_model)
+
+    @test a != b
+    summed_a = sum((sum(s.visit_counts) for (_, s) in a))
+    summed_b = sum((sum(s.visit_counts) for (_, s) in b))
+
+    MCTS.merge_storages!(a, b)
+
+    @test summed_a + summed_b == sum((sum(s.visit_counts) for (_, s) in a))
   end
 
 end

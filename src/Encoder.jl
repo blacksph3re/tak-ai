@@ -85,7 +85,7 @@ using ..TakEnv
 using ..TakEnv: FIELD_SIZE, FIELD_HEIGHT, possible_carries, possible_directions, stone_player, stone_type, get_stack_height, flat, cap, stand, north, south, east, west, placement, carry, white, black
 
 export board_encoding_length, action_onehot_encoding_length, action_twohot_encoding_length
-export action_to_onehot, onehot_to_action, action_to_twohot, twohot_to_action, compress_action, decompress_action
+export action_to_onehot, onehot_to_action, action_to_twohot, twohot_to_action, compress_action, decompress_action, expand_action_probs, reduce_action_probs
 export board_to_enc, enc_to_board, compress_board, decompress_board
 export BoardEnc, ActionEnc, ActionTwoEnc, CompressedBoard, CompressedAction
 
@@ -262,6 +262,21 @@ function twohot_to_action(vec::ActionTwoEnc)::Action
       dir, c = onehot_to_carry(vec[2][4:end])
       Action(pos, nothing, dir, c, carry::ActionType)
   end
+end
+
+# Take a vector of actions and corresponding probs and expand that to onehot size
+function expand_action_probs(actions::Vector{CompressedAction}, probs::Vector{T})::Vector{T} where T
+  @assert length(actions) == length(probs)
+  retval = zeros(T, action_onehot_encoding_length)
+  for (i, a) in enumerate(actions)
+      retval[a+1] = probs[i]
+  end
+  retval
+end
+
+# Take a onehot-sized vector of probs and possible actions and reduce it to the length of those actions
+function reduce_action_probs(probs::Vector{T}, possible_actions::Vector{CompressedAction})::Vector{T} where T
+  probs[possible_actions .+ 1]
 end
 
 
