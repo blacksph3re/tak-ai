@@ -22,7 +22,7 @@ function main()
     # How many steps to apply above tau before switching to fully greedy
     "steps_before_tau_0" => 8,
     # How long to self-play before doing a training run
-    "min_replay_buffer_length" => 50,
+    "min_replay_buffer_length" => 256,
     # How many rounds of training per game
     "train_rounds" => 10,
     # Training batch size

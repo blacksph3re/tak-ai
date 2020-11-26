@@ -55,6 +55,11 @@ using ..TakEnv
     @test TakEnv.stack_height_less_than(testboard(), (2,1), 4) == true
     @test TakEnv.opponent_player(TakEnv.black::Player) == TakEnv.white::Player
     @test TakEnv.opponent_player(TakEnv.white::Player) == TakEnv.black::Player
+    @test TakEnv.board_statistics(TakEnv.rotate_board(testboard(), 2)) == TakEnv.board_statistics(testboard())
+    @test TakEnv.rotate_board(testboard(), 3) != testboard()
+    @test TakEnv.rotate_board(TakEnv.rotate_board(testboard(), 3), 1) == testboard()
+    @test TakEnv.mirror_board(testboard()) != testboard()
+    @test TakEnv.mirror_board(TakEnv.mirror_board(testboard())) == testboard()
   end
 
   @testset "board_statistics" begin
@@ -150,7 +155,7 @@ using ..TakEnv
   @testset "flat_win helpers" begin
     @test TakEnv.check_fully_covered(testboard()) == false
     @test TakEnv.check_player_out_of_stones(testboard()) == false
-    @test TakEnv.count_flats(testboard()) == Dict(TakEnv.white::Player => 0, TakEnv.black::Player => 2)
+    @test TakEnv.count_flats(testboard()) == Dict(TakEnv.white::Player => 0, TakEnv.black::Player => 2+TakEnv.KOMI)
   end
 
   # These tests only work on 5x5 board

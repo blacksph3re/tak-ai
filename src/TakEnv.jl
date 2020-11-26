@@ -144,6 +144,17 @@ function opponent_player(player::Player)::Player
 end
 
 
+function rotate_board(board::Board, rotations::Int)::Board
+    board2 = copy(board)
+    for i in 1:TakEnv.FIELD_HEIGHT
+        board2[:,:,i] = rotl90(board[:,:,i], rotations)
+    end
+    board2
+end
+
+function mirror_board(board::Board)::Board
+    board[end:-1:1, :, :]
+end
 
 
 # Renders a board
@@ -261,6 +272,9 @@ function board_statistics(board::Board, player::Union{Player, Nothing})::Dict{St
         stand::Stone => spent_stones[Int(stand::Stone)+1],
         cap::Stone => spent_stones[Int(cap::Stone)+1],
     )
+end
+function board_statistics(board::Board)::Dict{Stone, Int}
+    board_statistics(board, nothing)
 end
 
 

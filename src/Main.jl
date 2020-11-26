@@ -117,7 +117,7 @@ function train_loop(hparams)
       
       posttrain = time_ns()
       
-      println("Epoch $(epoch), V-loss: $(valueloss), P-loss: $(probloss), Play-time: $((postgame-start)*1e9)s Train-time: $((posttrain-postgame)*1e9)s")
+      println("Epoch $(epoch), V-loss: $(valueloss), P-loss: $(probloss), Play-time: $((postgame-start)*1e-9)s Train-time: $((posttrain-postgame)*1e-9)s")
       
       
       if epoch>0 && epoch%hparams["play_tournament_every"]==0

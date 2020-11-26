@@ -12,7 +12,7 @@ Float = Float32
 @testset "MCTS.jl" begin
   hparams = Dict(
     "d_puct" => 1.0,
-    "batch_size" => 64,
+    "mcts_batch_size" => 64,
     "mcts_iterations" => 20,
     "run_name" => "testrun",
     "exploration_factor" => 0.25,

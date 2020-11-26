@@ -4,6 +4,7 @@ authors = ["Nico Westerbeck <Nico.Westerbeck@mailbox.tu-dresden.de>"]
 version = "0.1.0"
 
 [deps]
+BSON = "fbb218c0-5317-5bc6-957e-2ee96dd4b1f0"
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
@@ -12,4 +13,5 @@ NNlib = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
 ProfileView = "c46f51b8-102a-5cf2-8d2c-8597cb0e0da7"
 StatProfilerHTML = "a8a75453-ed82-57c9-9e16-4cd1196ecbf5"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
