@@ -129,9 +129,9 @@ version = "0.10.9"
 
 [[ColorVectorSpace]]
 deps = ["ColorTypes", "Colors", "FixedPointNumbers", "LinearAlgebra", "SpecialFunctions", "Statistics", "StatsBase"]
-git-tree-sha1 = "2ae827d936fa9d8e00dd5166563499c07c5672c5"
+git-tree-sha1 = "4d17724e99f357bfd32afa0a9e2dda2af31a9aea"
 uuid = "c3611d14-8923-5661-9e6a-0046d554d3a4"
-version = "0.8.6"
+version = "0.8.7"
 
 [[Colors]]
 deps = ["ColorTypes", "FixedPointNumbers", "InteractiveUtils", "Reexport"]
@@ -169,10 +169,10 @@ uuid = "9a962f9c-6df0-11e9-0e5d-c546b8b5ee8a"
 version = "1.4.0"
 
 [[DataStructures]]
-deps = ["Compat", "InteractiveUtils", "OrderedCollections"]
-git-tree-sha1 = "fb0aa371da91c1ff9dc7fbed6122d3e411420b9c"
+deps = ["InteractiveUtils", "OrderedCollections"]
+git-tree-sha1 = "88d48e133e6d3dd68183309877eac74393daa7eb"
 uuid = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
-version = "0.18.8"
+version = "0.17.20"
 
 [[Dates]]
 deps = ["Printf"]
@@ -206,9 +206,9 @@ uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
 [[Distributions]]
 deps = ["FillArrays", "LinearAlgebra", "PDMats", "Printf", "QuadGK", "Random", "SparseArrays", "SpecialFunctions", "StaticArrays", "Statistics", "StatsBase", "StatsFuns"]
-git-tree-sha1 = "4474f7b2d475fbdb028faab4fdbd88d8d7a50e62"
+git-tree-sha1 = "6493eec6bfb1e578cff879b66844807e3625c83c"
 uuid = "31c24e10-a181-5473-b8eb-7969acd0382f"
-version = "0.24.3"
+version = "0.24.4"
 
 [[DocStringExtensions]]
 deps = ["LibGit2", "Markdown", "Pkg", "Test"]
@@ -362,6 +362,12 @@ git-tree-sha1 = "f32edfff5e9c8741afaada4ff7f1454a988a962a"
 uuid = "27996c0f-39cd-5cc1-a27a-05f136f946b6"
 version = "1.0.4"
 
+[[HAML]]
+deps = ["DataStructures", "Markdown", "Requires"]
+git-tree-sha1 = "071463272a28d3945d036f370c3998141ab8c8b7"
+uuid = "0bc81568-2411-4001-9bf1-c899fa54f385"
+version = "0.3.3"
+
 [[HDF5]]
 deps = ["Blosc", "HDF5_jll", "Libdl", "Mmap", "Random"]
 git-tree-sha1 = "0713cbabdf855852dfab3ce6447c87145f3d9ea8"
@@ -393,10 +399,10 @@ uuid = "7869d1d1-7146-5819-86e3-90919afe41df"
 version = "0.4.1"
 
 [[ImageCore]]
-deps = ["Colors", "FixedPointNumbers", "Graphics", "MappedArrays", "MosaicViews", "OffsetArrays", "PaddedViews", "Reexport", "Requires"]
-git-tree-sha1 = "b6d3bc61ad9509332317c280b4b271f7d3a3b5ae"
+deps = ["AbstractFFTs", "Colors", "FixedPointNumbers", "Graphics", "MappedArrays", "MosaicViews", "OffsetArrays", "PaddedViews", "Reexport"]
+git-tree-sha1 = "ec29985885981ec7a8b97faa0ec86934ed813490"
 uuid = "a09fc81d-aa75-5fe9-8630-4744c3626534"
-version = "0.8.18"
+version = "0.8.19"
 
 [[ImageMagick]]
 deps = ["FileIO", "ImageCore", "ImageMagick_jll", "InteractiveUtils", "Libdl", "Pkg", "Random"]
@@ -625,9 +631,9 @@ uuid = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
 version = "0.7.7"
 
 [[NaNMath]]
-git-tree-sha1 = "c84c576296d0e2fbb3fc134d3e09086b3ea617cd"
+git-tree-sha1 = "bfe47e760d60b82b66b61d2d44128b62e3a369fb"
 uuid = "77ba4419-2d1f-58cd-9bb1-8ffee604a2e3"
-version = "0.3.4"
+version = "0.3.5"
 
 [[OffsetArrays]]
 deps = ["Adapt"]
@@ -666,9 +672,9 @@ version = "0.10.1"
 
 [[PaddedViews]]
 deps = ["OffsetArrays"]
-git-tree-sha1 = "24f4e937212b79ced6bcba6c4788407081ed68f0"
+git-tree-sha1 = "91d229e113e8975a399e40d7c0b1ddf4da6d3c59"
 uuid = "5432bcbf-9aad-5242-b902-cca2824c8663"
-version = "0.5.6"
+version = "0.5.7"
 
 [[Pango_jll]]
 deps = ["Artifacts", "Cairo_jll", "Fontconfig_jll", "FreeType2_jll", "FriBidi_jll", "Glib_jll", "HarfBuzz_jll", "JLLWrappers", "Libdl", "Pkg"]
@@ -740,9 +746,9 @@ version = "0.2.0"
 
 [[Requires]]
 deps = ["UUIDs"]
-git-tree-sha1 = "28faf1c963ca1dc3ec87f166d92982e3c4a1f66d"
+git-tree-sha1 = "e05c53ebc86933601d36212a93b39144a2733493"
 uuid = "ae029012-a4dd-5104-9daa-d747884805df"
-version = "1.1.0"
+version = "1.1.1"
 
 [[Richardson]]
 deps = ["LinearAlgebra"]
@@ -816,10 +822,10 @@ uuid = "276daf66-3868-5448-9aa4-cd146d93841b"
 version = "0.10.3"
 
 [[StatProfilerHTML]]
-deps = ["Profile", "Test"]
-git-tree-sha1 = "1b039dcd0209c9541056af2c03850cff695913a5"
+deps = ["Base64", "DataStructures", "Dates", "FlameGraphs", "HAML", "Profile", "Test"]
+git-tree-sha1 = "0938489df028d4158d244888dde415b3941f81e9"
 uuid = "a8a75453-ed82-57c9-9e16-4cd1196ecbf5"
-version = "1.0.0"
+version = "1.2.0"
 
 [[StaticArrays]]
 deps = ["LinearAlgebra", "Random", "Statistics"]

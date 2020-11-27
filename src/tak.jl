@@ -22,16 +22,16 @@ function main()
     # How many steps to apply above tau before switching to fully greedy
     "steps_before_tau_0" => 8,
     # How long to self-play before doing a training run
-    "min_replay_buffer_length" => 256,
+    "min_replay_buffer_length" => 1000,
     # How many rounds of training per game
     "train_rounds" => 10,
     # Training batch size
     "train_batch_size" => 256,
-    "epochs" => 1000,
+    "epochs" => 1000000,
     # How many rounds to play a tournament
-    "tournament_rounds" => 10,
+    "tournament_rounds" => 50,
     # Every x epochs to play a tournament
-    "play_tournament_every" => 2,
+    "play_tournament_every" => 50,
     # The threshold which results in model exchange
     # In fraction of games won
     "model_exchange_threshold" => 0.6

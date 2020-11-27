@@ -166,6 +166,11 @@ using ..TakEnv
     end 
   end
 
+  @testset "check_stalemate" begin
+    @test TakEnv.check_stalemate([testboard() for _ in 1:10]) == true
+    @test TakEnv.check_stalemate([testboard() for _ in 1:3]) == false
+  end
+
   @testset "random_game" begin
     @test length(TakEnv.random_game(4)[3]) == 4
     @test length(TakEnv.random_game()[3]) >= TakEnv.FIELD_SIZE*2-1

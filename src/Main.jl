@@ -43,6 +43,7 @@ function play_game(hparams, storages::NTuple{2, MCTSStorage}, models::NTuple{2, 
       # Advance the game-state and check for a win
       apply_action!(board, decompress_action(actions[action_idx]), cur_player)
       result = check_win(board, cur_player)
+      stalemate = check_stalemate([h[1] for h in history])
       if !isnothing(result)
           if result[1] == TakEnv.draw
               result = 0
@@ -55,6 +56,11 @@ function play_game(hparams, storages::NTuple{2, MCTSStorage}, models::NTuple{2, 
               first_player_result = -1
           end
           break
+      end
+      if stalemate
+        result = 0
+        first_player_result = 0
+        break
       end
       cur_player = opponent_player(cur_player)
       #println("Step $(length(history)) with value $(avg_val[action_idx])")
@@ -77,7 +83,6 @@ function play_tournament(hparams, models::NTuple{2, Any})
   fake_hparams["tau"] = 0
   
   models_bound = map(model -> (states, players)->run_batch(model, states, players), models)
-
   
   for i in 1:hparams["tournament_rounds"]
       _, r, _ = play_game(fake_hparams, (MCTSStorage(), MCTSStorage()), i%2 == 0 ? models_bound : reverse(models_bound))
@@ -125,7 +130,7 @@ function train_loop(hparams)
           res = play_tournament(hparams, (model, target_model))
           
           # Check if we have to exchange the model
-          if res[1] > sum(res)*hparams["model_exchange_threshold"]
+          if res[1] >= sum(res)*hparams["model_exchange_threshold"]
               println("Model tournament won ($(res[1]) - $(res[2])), exchanging model $(exchange_count) and checkpointing")
               replay_buffer = []
               storage = MCTSStorage()

@@ -1,3 +1,5 @@
 statprof
 .vscode
 .ipynb_checkpoints
+*.bson
+

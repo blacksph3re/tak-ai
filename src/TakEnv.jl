@@ -4,7 +4,7 @@ module TakEnv
 using Luxor
 
 export Action, Result, Board, CarryType
-export empty_board, enumerate_actions, apply_action!, check_win, render_board, random_game, opponent_player
+export empty_board, enumerate_actions, apply_action!, check_win, check_stalemate, render_board, random_game, opponent_player
 export Stone, Player, Direction, ActionType, ResultType
 export white, black
 
@@ -563,6 +563,11 @@ function check_win(board::Board, active_player::Player)::Union{Result, Nothing}
   end
   
   nothing
+end
+
+function check_stalemate(state_history)::Bool
+    uniques = unique(state_history)
+    any(x -> x > 5, (count(s -> u==s, state_history) for u in uniques))
 end
 
 function random_game(max_moves::Union{Int, Nothing})::Tuple{Board, Union{Result, Nothing}, Array{Action,1}}

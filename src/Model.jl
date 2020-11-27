@@ -6,7 +6,7 @@ using BSON: @save, @load
 using ..TakEnv
 using ..Encoder
 
-export construct_model, run_batch, train!, ModelStruct
+export construct_model, run_batch, train!, ModelStruct, save_model, load_model
 
 Float = Float32
 
@@ -15,9 +15,9 @@ struct ModelStruct
   valuehead::Dense
   logitshead::Dense
   ModelStruct(hparams) = new(
-    Dense(board_encoding_length+length(instances(Player)), hparams["hidden_size"], leakyrelu),
-    Dense(hparams["hidden_size"], 1),
-    Dense(hparams["hidden_size"], action_onehot_encoding_length)
+    Dense(board_encoding_length+length(instances(Player)), hparams["hidden_size"], leakyrelu) |> gpu,
+    Dense(hparams["hidden_size"], 1) |> gpu,
+    Dense(hparams["hidden_size"], action_onehot_encoding_length) |> gpu
   )
 end
 
@@ -49,7 +49,7 @@ function run_batch(model, state_batch::Vector{CompressedBoard}, player_batch::Ve
   boards = Flux.batch(board_to_enc.(decompress_board.(state_batch)))
   players = Flux.onehotbatch(player_batch, instances(Player))
   
-  data = vcat(players, boards) |> gpu
+  data = convert.(Float, vcat(players, boards)) |> gpu
   logits, values = model(data)
   (cpu(logits), cpu(values))
 end

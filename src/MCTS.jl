@@ -71,6 +71,7 @@ function find_leaf(hparams::HParams, storage::MCTSStorage, start_state::Compress
       
       # Check for win
       result = check_win(board, player)
+      stalemate = check_stalemate(states)
       cur_player = TakEnv.opponent_player(cur_player)
       cur_state = compress_board(board)
       
@@ -85,6 +86,10 @@ function find_leaf(hparams::HParams, storage::MCTSStorage, start_state::Compress
               value = 1.0
           end
           break
+      end
+      if stalemate
+        value = 0.0
+        break
       end
   end
   
@@ -130,6 +135,7 @@ function search_batch(hparams::HParams, storage::MCTSStorage, start_state, playe
   # Expand nodes
   if length(expand_queue)>0
       # Get values and logits via model
+      
       logits, values = model(expand_states, expand_players)
       
       # Save the node
