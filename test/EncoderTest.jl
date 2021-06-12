@@ -202,5 +202,26 @@ using Test
   @testset "random_encoded_game" begin
     @test !isnothing(random_encoded_game(nothing)[1])
   end
+
+  @testset "rotation, mirroring" begin
+    @test sum(Encoder.action_onehot_rotation_map) == sum(1:Encoder.action_onehot_encoding_length)
+
+    board = testboard()
+    action_vec = reduce(.|, Encoder.action_to_onehot.(TakEnv.enumerate_actions(board, TakEnv.white::Player)))
+    @test Encoder.rotate_action_vec(action_vec) != action_vec
+    tmp_vec = Encoder.rotate_action_vec(action_vec)
+    tmp_vec = Encoder.rotate_action_vec(tmp_vec)
+    tmp_vec = Encoder.rotate_action_vec(tmp_vec)
+    tmp_vec = Encoder.rotate_action_vec(tmp_vec)
+    @test tmp_vec == action_vec
+
+    action = TakEnv.Action((rand(1:TakEnv.FIELD_SIZE), rand(1:TakEnv.FIELD_SIZE)), TakEnv.flat::Stone, nothing, nothing, TakEnv.placement::ActionType)
+    @test Encoder.rotate_action_vec(Encoder.action_to_onehot(action)) == Encoder.action_to_onehot(TakEnv.rotate_action(action))
+
+    @test Encoder.mirror_action_vec(action_vec) != action_vec
+    @test Encoder.mirror_action_vec(Encoder.mirror_action_vec(action_vec)) == action_vec
+    @test Encoder.mirror_action_vec(Encoder.action_to_onehot(action)) == Encoder.action_to_onehot(TakEnv.mirror_action(action))
+
+  end
 end
 end

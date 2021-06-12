@@ -143,7 +143,7 @@ function opponent_player(player::Player)::Player
   Player((Int(player)+1)%2)
 end
 
-
+# Rotate the entire board 90 degrees ccw
 function rotate_board(board::Board, rotations::Int)::Board
     board2 = copy(board)
     for i in 1:TakEnv.FIELD_HEIGHT
@@ -152,10 +152,72 @@ function rotate_board(board::Board, rotations::Int)::Board
     board2
 end
 
+# Rotate a direction 90 degrees ccw
+function rotate_direction(dir::Direction)::Direction
+    Direction((Int(dir)+3)%4)
+end
+rotate_direction(nothing) = nothing
+
+# Rotate a position 90 degrees ccw
+# Use the fact that rotation around (0, 0) by 90 degrees works through
+# changing A(x, y) to A'(-y, x) -> Reshape this equation to fit our coordinate
+# system
+function rotate_pos(pos::NTuple{2, Int})::NTuple{2, Int}
+    return (pos[2], -(pos[1]-1) + FIELD_SIZE)
+end
+
+# Rotate an action 90 degrees ccw
+function rotate_action(action::Action)::Action
+    Action(
+        rotate_pos(action.pos),
+        action.stone,
+        rotate_direction(action.dir),
+        action.carry,
+        action.action_type)
+end
+
+# Mirror a board left to right
 function mirror_board(board::Board)::Board
     board[end:-1:1, :, :]
 end
 
+# Mirror a direction left to right
+function mirror_direction(dir::Direction)::Direction
+    if dir == north::Direction || dir == south::Direction
+        dir
+    else
+        rotate_direction(rotate_direction(dir))
+    end
+end
+mirror_direction(nothing) = nothing
+
+
+# Mirror a position left to right
+function mirror_pos(pos::NTuple{2, Int})::NTuple{2, Int}
+    (-(pos[1]-1) + FIELD_SIZE, pos[2])
+end
+
+# Mirror an action left to right
+function mirror_action(action::Action)::Action
+    Action(
+        mirror_pos(action.pos),
+        action.stone,
+        mirror_direction(action.dir),
+        action.carry,
+        action.action_type
+    )
+end
+
+function invert_stone(stone::Union{Tuple{Stone, Player}, Nothing})::Union{Tuple{Stone, Player}, Nothing}
+    if isnothing(stone)
+        return nothing
+    end
+    return (stone[1], opponent_player(stone[2]))
+end
+
+function invert_board(board::Board)::Board
+    invert_stone.(board)
+end
 
 # Renders a board
 const RENDER_RESOLUTION = 1000
@@ -460,9 +522,6 @@ function apply_action!(board::Board, action::Action, player::Player)
       
   board
 end
-
-
-
 
 
 function check_road_search(board::Board, pos::NTuple{2, Int}, already_checked::Array{NTuple{2, Int}}, horizontal::Bool, player::Player)::Bool

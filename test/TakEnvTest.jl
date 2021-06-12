@@ -56,10 +56,29 @@ using ..TakEnv
     @test TakEnv.opponent_player(TakEnv.black::Player) == TakEnv.white::Player
     @test TakEnv.opponent_player(TakEnv.white::Player) == TakEnv.black::Player
     @test TakEnv.board_statistics(TakEnv.rotate_board(testboard(), 2)) == TakEnv.board_statistics(testboard())
+  end
+
+  @testset "inverting, rotating, mirroring helpers" begin
     @test TakEnv.rotate_board(testboard(), 3) != testboard()
     @test TakEnv.rotate_board(TakEnv.rotate_board(testboard(), 3), 1) == testboard()
     @test TakEnv.mirror_board(testboard()) != testboard()
     @test TakEnv.mirror_board(TakEnv.mirror_board(testboard())) == testboard()
+    @test TakEnv.invert_board(testboard()) != testboard()
+    @test TakEnv.invert_board(TakEnv.invert_board(testboard())) == testboard()
+    @test TakEnv.invert_board(testboard())[2,1,1] == (TakEnv.flat::Stone, TakEnv.black::Player)
+    @test TakEnv.rotate_pos((1, 1)) == (1, TakEnv.FIELD_SIZE)
+    @test TakEnv.rotate_pos((TakEnv.FIELD_SIZE, TakEnv.FIELD_SIZE)) == (TakEnv.FIELD_SIZE, 1)
+    randpos = (rand(1:TakEnv.FIELD_SIZE), rand(1:TakEnv.FIELD_SIZE))
+    @test TakEnv.rotate_pos(TakEnv.rotate_pos(TakEnv.rotate_pos(TakEnv.rotate_pos(randpos)))) == randpos
+    if TakEnv.FIELD_SIZE == 5
+      @test TakEnv.rotate_pos((3, 3)) == (3, 3)
+    end
+    @test TakEnv.rotate_action(Action((1, 1), nothing, TakEnv.west::Direction, (1,0,0,0), TakEnv.carry)) == Action((1, 5), nothing, TakEnv.south::Direction, (1,0,0,0), TakEnv.carry)
+    @test TakEnv.rotate_action(Action((1, 1), TakEnv.flat::Stone, nothing, nothing, TakEnv.placement::ActionType)) == Action((1, 5), TakEnv.flat::Stone, nothing, nothing, TakEnv.placement::ActionType)
+    @test TakEnv.mirror_action(Action((1, 1), nothing, TakEnv.west::Direction, (1,0,0,0), TakEnv.carry)) == Action((5, 1), nothing, TakEnv.east::Direction, (1,0,0,0), TakEnv.carry)    
+    @test TakEnv.mirror_action(Action((1, 1), nothing, TakEnv.south::Direction, (1,0,0,0), TakEnv.carry)) == Action((5, 1), nothing, TakEnv.south::Direction, (1,0,0,0), TakEnv.carry)
+    @test TakEnv.mirror_action(Action((1, 1), TakEnv.flat::Stone, nothing, nothing, TakEnv.placement::ActionType)) == Action((5, 1), TakEnv.flat::Stone, nothing, nothing, TakEnv.placement::ActionType)
+
   end
 
   @testset "board_statistics" begin

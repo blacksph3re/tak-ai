@@ -88,6 +88,7 @@ export board_encoding_length, action_onehot_encoding_length, action_twohot_encod
 export action_to_onehot, onehot_to_action, action_to_twohot, twohot_to_action, compress_action, decompress_action, expand_action_probs, reduce_action_probs
 export board_to_enc, enc_to_board, compress_board, decompress_board
 export BoardEnc, ActionEnc, ActionTwoEnc, CompressedBoard, CompressedAction
+export mirror_action_vec, rotate_action_vec
 
 BoardEnc = BitArray{1}
 ActionEnc = BitArray{1}
@@ -563,5 +564,42 @@ function random_encoded_game()
   random_encoded_game(nothing)
 end
 
+# Calculates an array of indices where, if moving the indices of a onehot vector
+# The result would be the onehot vector with every action rotated 90 deg ccw
+function calc_action_onehot_rotation_map()::Array{UInt16}
+  map_vec = zeros(action_onehot_encoding_length)
+  for i in 1:action_onehot_encoding_length
+    action = falses(action_onehot_encoding_length)
+    action[i] = 1
+    rotated = action_to_onehot(TakEnv.rotate_action(onehot_to_action(action)))
+    map_vec[findfirst(rotated)] = i
+  end
+  map_vec
+end
+
+# Calculate the rotation map
+const action_onehot_rotation_map = calc_action_onehot_rotation_map()
+# Rotates a one/morehot/pi vector in the shape of a onehot encoded vector 90 degrees ccw
+function rotate_action_vec(x::AbstractArray)::AbstractArray
+  x[action_onehot_rotation_map]
+end
+
+# Calculates an array of indices for a mirroring transformation
+function calc_action_onehot_mirroring_map()::Array{UInt16}
+  map_vec = zeros(action_onehot_encoding_length)
+  for i in 1:action_onehot_encoding_length
+    action = falses(action_onehot_encoding_length)
+    action[i] = 1
+    mirrored = action_to_onehot(TakEnv.mirror_action(onehot_to_action(action)))
+    map_vec[findfirst(mirrored)] = i
+  end
+  map_vec
+end
+
+const action_onehot_mirroring_map = calc_action_onehot_mirroring_map()
+# Mirrors a one/morehot/pi vector in the shape of a onehot encoded vector left to right
+function mirror_action_vec(x::AbstractArray)::AbstractArray
+  x[action_onehot_mirroring_map]
+end
 
 end
