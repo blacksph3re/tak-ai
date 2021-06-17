@@ -3,3 +3,4 @@ statprof
 .ipynb_checkpoints
 *.bson
 papers
+julia-1.5.4

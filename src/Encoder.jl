@@ -96,12 +96,13 @@ ActionTwoEnc = Tuple{BitArray{1}, BitArray{1}}
 CompressedBoard = BitArray{1}
 CompressedAction = Int
 
-const STACK_REPR_HEIGHT = FIELD_SIZE*3
-@assert STACK_REPR_HEIGHT < FIELD_HEIGHT-1
+# Limit the representable height of a stack, assume a stack is never growing beyond that point
+const STACK_REPR_HEIGHT = FIELD_HEIGHT-3
+const stone_encoding_length = TakEnv.CAPSTONE_COUNT > 0 ? 3 : 2
 
-const action_onehot_encoding_length = (length(possible_directions)*length(possible_carries)+length(instances(Stone)))*FIELD_SIZE^2
-const action_twohot_encoding_length = (length(possible_directions)*length(possible_carries)+length(instances(Stone)), FIELD_SIZE^2)
-const action_encoding_first_length = length(possible_directions)*length(possible_carries)+length(instances(Stone))
+const action_onehot_encoding_length = (length(possible_directions)*length(possible_carries)+stone_encoding_length)*FIELD_SIZE^2
+const action_twohot_encoding_length = (length(possible_directions)*length(possible_carries)+stone_encoding_length, FIELD_SIZE^2)
+const action_encoding_first_length = length(possible_directions)*length(possible_carries)+stone_encoding_length
 
 # We want a list of all possible moves
 # All placement moves are easy, just looking at the fields on the board which are empty:
@@ -145,7 +146,7 @@ end
 
 # stone to one-hot
 function stone_to_onehot(s::Stone)::BitArray{1}
-  retval = falses(3)
+  retval = falses(stone_encoding_length)
   retval[Integer(s)+1] = true
   return retval
 end
@@ -160,7 +161,7 @@ function onehot_to_stone(vec::BitArray{1})::Union{Stone, Nothing}
 end
 
 function direction_to_onehot(m::Direction)::BitArray{1}
-  retval = falses(4)
+  retval = falses(length(possible_directions))
   retval[Integer(m)+1] = true
   return retval
 end
@@ -175,7 +176,7 @@ function onehot_to_direction(vec::BitArray{1})::Union{Direction,Nothing}
 end
 
 function carry_to_onehot(m::Direction, carry::CarryType)::BitArray{1}
-  retval = falses(4*length(possible_carries))
+  retval = falses(length(possible_directions)*length(possible_carries))
   carry_idx = findfirst(c -> c==carry, possible_carries)
   
   @assert !isnothing(carry_idx) "the carry $(carry) is not a valid one"
@@ -204,7 +205,7 @@ function action_to_first_idx(a::Action)::Int
   else
     carry_idx = findfirst(c -> c==a.carry, possible_carries) - 1
     dir_idx = Int(a.dir)
-    3+dir_idx*length(possible_carries)+carry_idx
+    stone_encoding_length+dir_idx*length(possible_carries)+carry_idx
   end
 end
 
@@ -220,10 +221,10 @@ end
 compress_action(a::Action)::CompressedAction = action_to_idx(a)
 
 function first_idx_to_action(actidx::Int, pos::NTuple{2, Int})::Action
-  if actidx < 3
+  if actidx < stone_encoding_length
     Action(pos, Stone(actidx), nothing, nothing, placement::ActionType)
   else
-      actidx -= 3
+      actidx -= stone_encoding_length
       dir_idx = actidx ÷ length(possible_carries)
       carry_idx = actidx % length(possible_carries)
 
@@ -248,7 +249,7 @@ function action_to_twohot(action::Action)::ActionTwoEnc
   actenc = if action.action_type == placement::ActionType
       vcat(stone_to_onehot(action.stone), zeros(4*length(possible_carries)))
   else
-      vcat(zeros(3), carry_to_onehot(action.dir, action.carry))
+      vcat(zeros(stone_encoding_length), carry_to_onehot(action.dir, action.carry))
   end
   
   (posenc, actenc)
@@ -256,11 +257,11 @@ end
 
 function twohot_to_action(vec::ActionTwoEnc)::Action
   pos = onehot_to_pos(vec[1])
-  if vec[2][1] || vec[2][2] || vec[2][3]
-      stone = onehot_to_stone(vec[2][1:3])
+  if any(vec[2][1:stone_encoding_length])
+      stone = onehot_to_stone(vec[2][1:stone_encoding_length])
       Action(pos, stone, nothing, nothing, placement::ActionType)
   else
-      dir, c = onehot_to_carry(vec[2][4:end])
+      dir, c = onehot_to_carry(vec[2][(stone_encoding_length+1):end])
       Action(pos, nothing, dir, c, carry::ActionType)
   end
 end
@@ -317,46 +318,46 @@ function unfloat_board(board::Board)::Board
    newboard
 end
 
-
-const piece_encodings = vcat([falses(6)], [setindex!(falses(6), true, i) for i in 1:6])
+const piece_encoding_length = stone_encoding_length * length(instances(Player))
+const piece_encodings = vcat([falses(piece_encoding_length)], [setindex!(falses(piece_encoding_length), true, i) for i in 1:piece_encoding_length])
 function piece_to_onehot(piece::Union{Tuple{Stone, Player}, Nothing})::BitArray{1}
   if isnothing(piece)
       return piece_encodings[1]
   end
-  player_offset = Int(piece[2]) * 3 # white -> 0, black -> 3
+  player_offset = Int(piece[2]) * stone_encoding_length # white -> 0, black -> 3
   piece_encodings[2+Int(piece[1])+player_offset]
 end
 
 function onehot_to_piece(vec::BitArray{1})::Union{Tuple{Stone, Player}, Nothing}
-  @assert length(vec) == 6
+  @assert length(vec) == piece_encoding_length
   idx = findfirst(vec)
   if isnothing(idx)
       return nothing
   end
-  player = Player(Int(floor((idx-1)/3)))
-  stone = Stone((idx-1)%3)
+  player = Player(Int(floor((idx-1)/stone_encoding_length)))
+  stone = Stone((idx-1)%stone_encoding_length)
   (stone, player)
 end
 
 function board_top_row_to_onehot(board::Board)::BitArray{1}
-  retval = falses(6*FIELD_SIZE*FIELD_SIZE)
+  retval = falses(piece_encoding_length*FIELD_SIZE*FIELD_SIZE)
   offset = 1
   for x in 1:FIELD_SIZE
       for y in 1:FIELD_SIZE
-          retval[offset:offset+5] = piece_to_onehot(board[x,y,end])
-          offset += 6
+          retval[offset:offset+piece_encoding_length-1] = piece_to_onehot(board[x,y,end])
+          offset += piece_encoding_length
       end
   end
   retval
 end
 
 function onehot_to_board_top_row!(board::Board, vec::BitArray{1})
-  @assert length(vec) == 6*FIELD_SIZE*FIELD_SIZE
+  @assert length(vec) == piece_encoding_length*FIELD_SIZE*FIELD_SIZE
   offset = 1
   for x in 1:FIELD_SIZE
       for y in 1:FIELD_SIZE
-          board[x,y,end] = onehot_to_piece(vec[offset:offset+5])
-          offset += 6
+          board[x,y,end] = onehot_to_piece(vec[offset:offset+piece_encoding_length-1])
+          offset += piece_encoding_length
       end
   end
 end
@@ -427,8 +428,8 @@ end
 
 function enc_to_board(vec::BoardEnc)::Board
   board = empty_board()
-  onehot_to_board_top_row!(board, vec[1:6*FIELD_SIZE*FIELD_SIZE])
-  onehot_to_stacks!(board, vec[6*FIELD_SIZE*FIELD_SIZE+1:end])
+  onehot_to_board_top_row!(board, vec[1:piece_encoding_length*FIELD_SIZE*FIELD_SIZE])
+  onehot_to_stacks!(board, vec[piece_encoding_length*FIELD_SIZE*FIELD_SIZE+1:end])
   unfloat_board(board)
 end
 
@@ -450,7 +451,7 @@ function compress_board(board::Board)::CompressedBoard
 
             tmppieceenc.chunks[1] = topstone
             pieceidx = ((x-1)*FIELD_SIZE+(y-1))*3+1
-            pieceenc[pieceidx:pieceidx+2] = tmppieceenc
+            pieceenc[pieceidx:pieceidx+3-1] = tmppieceenc
 
             heightsum += max(height-1, 0)
             notemptysum += height != 0
@@ -503,7 +504,7 @@ function decompress_board(vec::CompressedBoard)::Board
   for x in 1:FIELD_SIZE
       for y in 1:FIELD_SIZE
           pieceidx = ((x-1)*FIELD_SIZE+(y-1))*3+1
-          piece = vec[pieceidx:pieceidx+2].chunks[1]
+          piece = vec[pieceidx:pieceidx+3-1].chunks[1]
           
           if piece == 0
               continue
@@ -600,6 +601,15 @@ const action_onehot_mirroring_map = calc_action_onehot_mirroring_map()
 # Mirrors a one/morehot/pi vector in the shape of a onehot encoded vector left to right
 function mirror_action_vec(x::AbstractArray)::AbstractArray
   x[action_onehot_mirroring_map]
+end
+
+# Returns an action vector with a bit set for every allowed action
+function get_valid_moves(board::TakEnv.Board, player::TakEnv.Player)::BitVector
+
+  possible_actions = Encoder.action_to_onehot.(TakEnv.enumerate_actions(board, player))
+
+  # Reduce one-hot encoded actions with bitwise or
+  reduce(.|, possible_actions, init=falses(action_onehot_encoding_length))
 end
 
 end

@@ -1,7 +1,6 @@
 
 
 module TakEnv
-using Luxor
 
 export Action, Result, Board, CarryType
 export empty_board, enumerate_actions, apply_action!, check_win, check_stalemate, render_board, random_game, opponent_player
@@ -24,18 +23,27 @@ const FIELD_SIZE = 5
 const NORMAL_PIECE_COUNT = 21
 const CAPSTONE_COUNT = 1
 
-# A score which is added to black when evaluating a win to compensate first-player-advantage
+# const FIELD_SIZE=4
+# const NORMAL_PIECE_COUNT=15
+# const CAPSTONE_COUNT=0
+
+# const FIELD_SIZE=3
+# const NORMAL_PIECE_COUNT=10
+# const CAPSTONE_COUNT=0
+
+
+# A score which is added to black when evaluating a flat win to compensate first-player-advantage
 const KOMI = 2
 
 # The highest possible tower is all normal pieces stacked as flat stones with a capstone on it
-const FIELD_HEIGHT = NORMAL_PIECE_COUNT*2+1
+const FIELD_HEIGHT = NORMAL_PIECE_COUNT*2+(CAPSTONE_COUNT>0 ? 1 : 0)
 
 
 @enum Stone::UInt8 flat stand cap
 @enum Player::UInt8 white black
 @enum Direction::UInt8 north east south west
 @enum ActionType::UInt8 placement carry
-@enum ResultType::UInt8 road_win flat_win double_road_win draw
+@enum ResultType::UInt8 road_win flat_win double_road_win draw stalemate
 
 CarryType = NTuple{FIELD_SIZE-1, Int8}
 Result = Tuple{ResultType, Union{Player, Nothing}}
@@ -151,6 +159,7 @@ function rotate_board(board::Board, rotations::Int)::Board
     end
     board2
 end
+rotate_board(board::Board) = rotate_board(board, 1)
 
 # Rotate a direction 90 degrees ccw
 function rotate_direction(dir::Direction)::Direction
@@ -219,97 +228,44 @@ function invert_board(board::Board)::Board
     invert_stone.(board)
 end
 
-# Renders a board
-const RENDER_RESOLUTION = 1000
-const RENDER_SIZE = Int(floor(RENDER_RESOLUTION/(FIELD_SIZE+1)))
-function render_board(board::Board)
-    @draw begin
-        background("grey15")
-        origin(Point(0, 0))
-        setline(1)
-        for x in range(1, stop=FIELD_SIZE)
-            for y in range(1, stop=FIELD_SIZE)
-                #sethue((x+FIELD_SIZE*y) % 2 == 0 ? "red" : "blue")
-                sethue("chocolate1")
-                setopacity(1)
-                origin(Point(x * RENDER_SIZE, y * RENDER_SIZE))
-                setline(1)
-                p = hypotrochoid(20, 5, 11, :stroke, stepby=0.01, vertices=true)
-                for i in 0:2:15
-                    poly(offsetpoly(p, i), :stroke, close=true)
-                end
 
-                sethue("blanchedalmond")
-                setopacity(0.5)
-                setline(4)
-                if(y < FIELD_SIZE)
-                    line(Point(0, RENDER_SIZE/5),
-                         Point(0, RENDER_SIZE - RENDER_SIZE/5), :stroke)
-                end
-                if(x < FIELD_SIZE)
-                    line(Point(RENDER_SIZE/5, 0),
-                         Point(RENDER_SIZE - RENDER_SIZE/5, 0), :stroke)
-                end
-            end
-        end
-
-        origin(Point(0, 0))
-        setopacity(1)
-
-        OFFSET_3D = 10
-
-        for z in range(1, stop=FIELD_HEIGHT)
-            for x in range(1, stop=FIELD_SIZE)
-                for y in range(1, stop=FIELD_SIZE)
-                    if !isnothing(board[x, y, z])
-                        stone, player = board[x, y, z]
-                        sethue(player == white::Player ? "cornsilk" : "honeydew4")
-                        origin(Point(x*RENDER_SIZE + (z-1)*OFFSET_3D, y*RENDER_SIZE - (z-1)*OFFSET_3D))
-                        if stone == flat::Stone
-                            box(Point(0, 0), RENDER_SIZE/2, RENDER_SIZE/2, 8, :fill)
-                            sethue("grey15")
-                            setline(0.5)
-                            box(Point(0, 0), RENDER_SIZE/2, RENDER_SIZE/2, 8, :stroke)
-                        elseif stone == stand::Stone
-                            rotate(π/4)
-                            box(Point(0, 0), RENDER_SIZE/5, RENDER_SIZE/2, 3, :fill)
-                            sethue("grey15")
-                            setline(0.5)
-                            box(Point(0, 0), RENDER_SIZE/5, RENDER_SIZE/2, 3, :stroke)
-                        elseif stone == cap::Stone
-                            box(Point(0, 0), RENDER_SIZE/2, RENDER_SIZE/2, 8, :fill)
-                            sethue("grey15")
-                            setline(0.5)
-                            box(Point(0, 0), RENDER_SIZE/2, RENDER_SIZE/2, 8, :stroke)
-                            sethue("gold")
-                            circle(Point(0, 0), RENDER_SIZE/8, :fill)
-                        end
-                    end
-                end
-            end
-        end
-    end 1000 1000
-end
 
 function assert_action(a::Action)
-  @assert a.dir != north::Direction || a.pos.y != 1 "can't move north with y=1"
-  @assert a.dir != south::Direction || a.pos.y != FIELD_SIZE "can't move south with y=FIELD_SIZE"
-  @assert a.dir != east::Direction || a.pos.x != FIELD_SIZE "can't move east with x=FIELD_SIZE"
-  @assert a.dir != west::Direction || a.pos.x != 1 "can't move west with x=1"
-  
-  @assert a.pos.x <= FIELD_SIZE && a.pos.x >= 1 "invalid x position"
-  @assert a.pos.y <= FIELD_SIZE && a.pos.y >= 1 "invalid y position"
-  
-  @assert a.action_type != placement::ActionType || !isnothing(a.stone) "a placement needs a stone"
-  @assert a.action_type != movement::ActionType || !isnothing(a.dir) "a movement needs a direction"
-  @assert a.action_type != carry::ActionType || (!isnothing(a.dir) && !isnothing(a.carry)) "a carry needs a carry and a dir"
-  
-  @assert !(isnothing(a.stone) && isnothing(a.dir) && isnothing(a.carry)) "At least one action type needs data"
-  @assert !(!isnothing(a.stone) && (!isnothing(a.dir) || !isnothing(a.carry))) "If it's a placement, it can't have a move or carry"
-  @assert !(!isnothing(a.carry) && !isnothing(a.dir)) "If it's a carry, it needs a direction"
-  
-  @assert isnothing(a.carry) || !isnothing(findfirst(c -> c == a.carry, possible_carries)) "Impossible carry"
-  true
+    @assert a.dir != north::Direction || a.pos[2] != 1 "can't move north with y=1"
+    @assert a.dir != south::Direction || a.pos[2] != FIELD_SIZE "can't move south with y=FIELD_SIZE"
+    @assert a.dir != east::Direction || a.pos[1] != FIELD_SIZE "can't move east with x=FIELD_SIZE"
+    @assert a.dir != west::Direction || a.pos[1] != 1 "can't move west with x=1"
+
+    @assert a.pos[1] <= FIELD_SIZE && a.pos[1] >= 1 "invalid x position"
+    @assert a.pos[2] <= FIELD_SIZE && a.pos[2] >= 1 "invalid y position"
+
+    @assert a.action_type != placement::ActionType || !isnothing(a.stone) "a placement needs a stone"
+    @assert a.action_type != carry::ActionType || (!isnothing(a.dir) && !isnothing(a.carry)) "a carry needs a carry and a dir"
+
+    @assert !(isnothing(a.stone) && isnothing(a.dir) && isnothing(a.carry)) "At least one action type needs data"
+    @assert !(!isnothing(a.stone) && (!isnothing(a.dir) || !isnothing(a.carry))) "If it's a placement, it can't have a move or carry"
+    @assert a.action_type != carry::ActionType || (!isnothing(a.carry) && !isnothing(a.dir)) "If it's a carry, it needs a direction and carry tuple"
+
+    @assert sum(a.carry) <= FIELD_SIZE "too many stones carried"
+    @assert isnothing(a.carry) || !isnothing(findfirst(c -> c == a.carry, possible_carries)) "Impossible carry"
+
+    if a.action_type == carry::ActionType
+        distance = count(a.carry .!= 0)
+        endpos = if a.dir == north::Direction
+            (a.pos[1], a.pos[2]-distance)
+        elseif a.dir == east::Direction
+            (a.pos[1]+distance, a.pos[2])
+        elseif a.dir == south::Direction
+            (a.pos[1], a.pos[2]+distance)
+        else
+            (a.pos[1]-distance, a.pos[2])
+        end
+
+        @assert endpos[1] <= FIELD_SIZE && endpos[1] >= 1 "Carry end $(endpos) board dimensions"
+        @assert endpos[2] <= FIELD_SIZE && endpos[2] >= 1 "Carry end $(endpos) outside board dimensions"
+    end
+
+    true
 end
 
 
@@ -626,7 +582,17 @@ end
 
 function check_stalemate(state_history)::Bool
     uniques = unique(state_history)
-    any(x -> x > 5, (count(s -> u==s, state_history) for u in uniques))
+    any(x -> x > 10, (count(s -> u==s, state_history) for u in uniques))
+end
+
+# Checks for win but also for stalemate
+function check_win(board::Board, active_player::Player, history::Vector{Board})::Union{Result, Nothing}
+    res = check_win(board, active_player)
+    if isnothing(res) && check_stalemate(history)
+        (stalemate::ResultType, nothing)
+    else
+        res
+    end
 end
 
 function random_game(max_moves::Union{Int, Nothing})::Tuple{Board, Union{Result, Nothing}, Array{Action,1}}

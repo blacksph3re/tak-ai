@@ -1,10 +1,11 @@
 module tak
 
+include("NN.jl")
 include("TakEnv.jl")
 include("Encoder.jl")
-include("MCTS.jl")
-include("Model.jl")
-include("Main.jl")
+include("TakUI.jl")
+include("TakInterface.jl")
+
 
 function main()
   hparams = Dict(
@@ -36,7 +37,5 @@ function main()
     # In fraction of games won
     "model_exchange_threshold" => 0.6
   )
-
-  Main.train_loop(hparams)
 end
 end

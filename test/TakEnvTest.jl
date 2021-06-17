@@ -1,4 +1,3 @@
-include("../src/TakEnv.jl")
 
 module TakEnvTest
 using Test
@@ -46,69 +45,77 @@ using ..TakEnv
   end
 
   @testset "board helpers" begin
-    @test TakEnv.get_top_stone(testboard(), (2, 1)) == (TakEnv.cap::Stone, TakEnv.black::Player)
-    @test TakEnv.get_top_stone(testboard(), (4, 1)) == (TakEnv.stand::Stone, TakEnv.white::Player)
-    @test TakEnv.get_top_stone(testboard(), (3, 1)) === nothing
-    @test TakEnv.get_stack_height(testboard(), (3, 1)) == 0
-    @test TakEnv.get_stack_height(testboard(), (2, 1)) == 3
-    @test TakEnv.stack_height_less_than(testboard(), (2,1), 3) == false
-    @test TakEnv.stack_height_less_than(testboard(), (2,1), 4) == true
-    @test TakEnv.opponent_player(TakEnv.black::Player) == TakEnv.white::Player
-    @test TakEnv.opponent_player(TakEnv.white::Player) == TakEnv.black::Player
-    @test TakEnv.board_statistics(TakEnv.rotate_board(testboard(), 2)) == TakEnv.board_statistics(testboard())
+    if TakEnv.FIELD_SIZE >= 5
+      @test TakEnv.get_top_stone(testboard(), (2, 1)) == (TakEnv.cap::Stone, TakEnv.black::Player)
+      @test TakEnv.get_top_stone(testboard(), (4, 1)) == (TakEnv.stand::Stone, TakEnv.white::Player)
+      @test TakEnv.get_top_stone(testboard(), (3, 1)) === nothing
+      @test TakEnv.get_stack_height(testboard(), (3, 1)) == 0
+      @test TakEnv.get_stack_height(testboard(), (2, 1)) == 3
+      @test TakEnv.stack_height_less_than(testboard(), (2,1), 3) == false
+      @test TakEnv.stack_height_less_than(testboard(), (2,1), 4) == true
+      @test TakEnv.opponent_player(TakEnv.black::Player) == TakEnv.white::Player
+      @test TakEnv.opponent_player(TakEnv.white::Player) == TakEnv.black::Player
+      @test TakEnv.board_statistics(TakEnv.rotate_board(testboard(), 2)) == TakEnv.board_statistics(testboard())
+    end
   end
 
   @testset "inverting, rotating, mirroring helpers" begin
-    @test TakEnv.rotate_board(testboard(), 3) != testboard()
-    @test TakEnv.rotate_board(TakEnv.rotate_board(testboard(), 3), 1) == testboard()
-    @test TakEnv.mirror_board(testboard()) != testboard()
-    @test TakEnv.mirror_board(TakEnv.mirror_board(testboard())) == testboard()
-    @test TakEnv.invert_board(testboard()) != testboard()
-    @test TakEnv.invert_board(TakEnv.invert_board(testboard())) == testboard()
-    @test TakEnv.invert_board(testboard())[2,1,1] == (TakEnv.flat::Stone, TakEnv.black::Player)
-    @test TakEnv.rotate_pos((1, 1)) == (1, TakEnv.FIELD_SIZE)
-    @test TakEnv.rotate_pos((TakEnv.FIELD_SIZE, TakEnv.FIELD_SIZE)) == (TakEnv.FIELD_SIZE, 1)
-    randpos = (rand(1:TakEnv.FIELD_SIZE), rand(1:TakEnv.FIELD_SIZE))
-    @test TakEnv.rotate_pos(TakEnv.rotate_pos(TakEnv.rotate_pos(TakEnv.rotate_pos(randpos)))) == randpos
+    if TakEnv.FIELD_SIZE >= 5
+      @test TakEnv.rotate_board(testboard(), 3) != testboard()
+      @test TakEnv.rotate_board(TakEnv.rotate_board(testboard(), 3), 1) == testboard()
+      @test TakEnv.mirror_board(testboard()) != testboard()
+      @test TakEnv.mirror_board(TakEnv.mirror_board(testboard())) == testboard()
+      @test TakEnv.invert_board(testboard()) != testboard()
+      @test TakEnv.invert_board(TakEnv.invert_board(testboard())) == testboard()
+      @test TakEnv.invert_board(testboard())[2,1,1] == (TakEnv.flat::Stone, TakEnv.black::Player)
+      @test TakEnv.rotate_pos((1, 1)) == (1, TakEnv.FIELD_SIZE)
+      @test TakEnv.rotate_pos((TakEnv.FIELD_SIZE, TakEnv.FIELD_SIZE)) == (TakEnv.FIELD_SIZE, 1)
+      randpos = (rand(1:TakEnv.FIELD_SIZE), rand(1:TakEnv.FIELD_SIZE))
+      @test TakEnv.rotate_pos(TakEnv.rotate_pos(TakEnv.rotate_pos(TakEnv.rotate_pos(randpos)))) == randpos
+    end
     if TakEnv.FIELD_SIZE == 5
       @test TakEnv.rotate_pos((3, 3)) == (3, 3)
+      @test TakEnv.rotate_action(Action((1, 1), nothing, TakEnv.west::Direction, (1,0,0,0), TakEnv.carry)) == Action((1, 5), nothing, TakEnv.south::Direction, (1,0,0,0), TakEnv.carry)
+      @test TakEnv.rotate_action(Action((1, 1), TakEnv.flat::Stone, nothing, nothing, TakEnv.placement::ActionType)) == Action((1, 5), TakEnv.flat::Stone, nothing, nothing, TakEnv.placement::ActionType)
+      @test TakEnv.mirror_action(Action((1, 1), nothing, TakEnv.west::Direction, (1,0,0,0), TakEnv.carry)) == Action((5, 1), nothing, TakEnv.east::Direction, (1,0,0,0), TakEnv.carry)    
+      @test TakEnv.mirror_action(Action((1, 1), nothing, TakEnv.south::Direction, (1,0,0,0), TakEnv.carry)) == Action((5, 1), nothing, TakEnv.south::Direction, (1,0,0,0), TakEnv.carry)
+      @test TakEnv.mirror_action(Action((1, 1), TakEnv.flat::Stone, nothing, nothing, TakEnv.placement::ActionType)) == Action((5, 1), TakEnv.flat::Stone, nothing, nothing, TakEnv.placement::ActionType)
     end
-    @test TakEnv.rotate_action(Action((1, 1), nothing, TakEnv.west::Direction, (1,0,0,0), TakEnv.carry)) == Action((1, 5), nothing, TakEnv.south::Direction, (1,0,0,0), TakEnv.carry)
-    @test TakEnv.rotate_action(Action((1, 1), TakEnv.flat::Stone, nothing, nothing, TakEnv.placement::ActionType)) == Action((1, 5), TakEnv.flat::Stone, nothing, nothing, TakEnv.placement::ActionType)
-    @test TakEnv.mirror_action(Action((1, 1), nothing, TakEnv.west::Direction, (1,0,0,0), TakEnv.carry)) == Action((5, 1), nothing, TakEnv.east::Direction, (1,0,0,0), TakEnv.carry)    
-    @test TakEnv.mirror_action(Action((1, 1), nothing, TakEnv.south::Direction, (1,0,0,0), TakEnv.carry)) == Action((5, 1), nothing, TakEnv.south::Direction, (1,0,0,0), TakEnv.carry)
-    @test TakEnv.mirror_action(Action((1, 1), TakEnv.flat::Stone, nothing, nothing, TakEnv.placement::ActionType)) == Action((5, 1), TakEnv.flat::Stone, nothing, nothing, TakEnv.placement::ActionType)
 
   end
 
   @testset "board_statistics" begin
-    @test TakEnv.board_statistics(testboard(), TakEnv.white::Player) == Dict(
-          TakEnv.flat::Stone => 4,
-          TakEnv.stand::Stone => 2,
-          TakEnv.cap::Stone => 1
-      )
-    @test TakEnv.board_statistics(testboard(), TakEnv.black::Player) == Dict(
-          TakEnv.flat::Stone => 5,
-          TakEnv.stand::Stone => 1,
-          TakEnv.cap::Stone => 1
-      )
+    if TakEnv.FIELD_SIZE >= 5
+      @test TakEnv.board_statistics(testboard(), TakEnv.white::Player) == Dict(
+            TakEnv.flat::Stone => 4,
+            TakEnv.stand::Stone => 2,
+            TakEnv.cap::Stone => 1
+        )
+      @test TakEnv.board_statistics(testboard(), TakEnv.black::Player) == Dict(
+            TakEnv.flat::Stone => 5,
+            TakEnv.stand::Stone => 1,
+            TakEnv.cap::Stone => 1
+        )
 
-    @test TakEnv.board_statistics(testboard(), nothing) == Dict(
-          TakEnv.flat::Stone => 9,
-          TakEnv.stand::Stone => 3,
-          TakEnv.cap::Stone => 2
-      )
+      @test TakEnv.board_statistics(testboard(), nothing) == Dict(
+            TakEnv.flat::Stone => 9,
+            TakEnv.stand::Stone => 3,
+            TakEnv.cap::Stone => 2
+        )
+    end
   end
 
   @testset "check carry helpers" begin
     @test TakEnv.check_outside_board((1, 0)) == true
     @test TakEnv.check_outside_board((TakEnv.FIELD_SIZE+1, TakEnv.FIELD_SIZE)) == true
-    @test TakEnv.check_outside_board((4, 4)) == false
+    @test TakEnv.check_outside_board((TakEnv.FIELD_SIZE-1, TakEnv.FIELD_SIZE-1)) == false
 
-    @test TakEnv.check_movement(testboard(), (3, 3), TakEnv.south::Direction) == false
-    @test TakEnv.check_movement(testboard(), (3, 3), TakEnv.east::Direction) == true
-    @test TakEnv.check_movement(testboard(), (2, 1), TakEnv.north::Direction) == false
-    @test TakEnv.check_movement(testboard(), (2, 1), TakEnv.south::Direction) == true
+    if TakEnv.FIELD_SIZE >= 5
+      @test TakEnv.check_movement(testboard(), (3, 3), TakEnv.south::Direction) == false
+      @test TakEnv.check_movement(testboard(), (3, 3), TakEnv.east::Direction) == true
+      @test TakEnv.check_movement(testboard(), (2, 1), TakEnv.north::Direction) == false
+      @test TakEnv.check_movement(testboard(), (2, 1), TakEnv.south::Direction) == true
+    end
 
     @test TakEnv.carry_only_zeros((0,0,0)) == true
     @test TakEnv.carry_only_zeros(()) == true
@@ -116,16 +123,18 @@ using ..TakEnv
 
 
   @testset "enumerate_actions" begin
-    @test length(enumerate_actions(Board(undef, TakEnv.FIELD_SIZE, TakEnv.FIELD_SIZE, TakEnv.FIELD_HEIGHT), TakEnv.white::Player)) == TakEnv.FIELD_SIZE ^ 2 * 3
+    @test length(enumerate_actions(Board(undef, TakEnv.FIELD_SIZE, TakEnv.FIELD_SIZE, TakEnv.FIELD_HEIGHT), TakEnv.white::Player)) == TakEnv.FIELD_SIZE ^ 2 * (TakEnv.CAPSTONE_COUNT > 0 ? 3 : 2)
 
-    @test begin
-      board = testboard()
-      issubset(enumerate_actions(board, TakEnv.white::Player), enumerate_actions(board)) &&
-      issubset(enumerate_actions(board, TakEnv.black::Player), enumerate_actions(board))
+    if TakEnv.FIELD_SIZE >= 5
+      @test begin
+        board = testboard()
+        issubset(enumerate_actions(board, TakEnv.white::Player), enumerate_actions(board)) &&
+        issubset(enumerate_actions(board, TakEnv.black::Player), enumerate_actions(board))
+      end
+
+      @test unique(enumerate_actions(testboard())) == enumerate_actions(testboard())
+      @test unique(enumerate_actions(testboard(), TakEnv.white::Player)) == enumerate_actions(testboard(), TakEnv.white::Player)
     end
-
-    @test unique(enumerate_actions(testboard())) == enumerate_actions(testboard())
-    @test unique(enumerate_actions(testboard(), TakEnv.white::Player)) == enumerate_actions(testboard(), TakEnv.white::Player)
 
     # These tests only work for a 5x5 board
     if TakEnv.FIELD_SIZE == 5
@@ -172,9 +181,11 @@ using ..TakEnv
   end
 
   @testset "flat_win helpers" begin
-    @test TakEnv.check_fully_covered(testboard()) == false
-    @test TakEnv.check_player_out_of_stones(testboard()) == false
-    @test TakEnv.count_flats(testboard()) == Dict(TakEnv.white::Player => 0, TakEnv.black::Player => 2+TakEnv.KOMI)
+    if TakEnv.FIELD_SIZE >= 5
+      @test TakEnv.check_fully_covered(testboard()) == false
+      @test TakEnv.check_player_out_of_stones(testboard()) == false
+      @test TakEnv.count_flats(testboard()) == Dict(TakEnv.white::Player => 0, TakEnv.black::Player => 2+TakEnv.KOMI)
+    end
   end
 
   # These tests only work on 5x5 board
@@ -186,8 +197,10 @@ using ..TakEnv
   end
 
   @testset "check_stalemate" begin
-    @test TakEnv.check_stalemate([testboard() for _ in 1:10]) == true
-    @test TakEnv.check_stalemate([testboard() for _ in 1:3]) == false
+    if TakEnv.FIELD_SIZE >= 5
+      @test TakEnv.check_win(testboard(), white::Player, [testboard() for _ in 1:15]) === (TakEnv.stalemate::ResultType, nothing)
+      @test TakEnv.check_win(testboard(), white::Player, [testboard() for _ in 1:3]) === nothing
+    end
   end
 
   @testset "random_game" begin
@@ -197,8 +210,6 @@ using ..TakEnv
     @test length(TakEnv.random_game(40)[3]) <= 40
   end
 
-  @testset "render" begin
-    @test typeof(TakEnv.render_board(random_game()[1])) == TakEnv.Luxor.Drawing
-  end
+
 end
 end

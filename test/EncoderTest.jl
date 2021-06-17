@@ -1,4 +1,3 @@
-include("../src/Encoder.jl")
 
 module EncoderTest
 
@@ -15,7 +14,7 @@ using Test
     board = empty_board()
     board[1,1,1] = (flat::Stone, white::Player)
     board[1,1,2] = (flat::Stone, black::Player)
-    board[1,1,3] = (cap::Stone, white::Player)
+    board[1,1,3] = (stand::Stone, white::Player)
     board[2,1,1] = (flat::Stone, black::Player)
     
     board
@@ -36,7 +35,10 @@ using Test
 
   @testset "onehot <-> stone" begin
     @test onehot_to_stone(stone_to_onehot(flat::Stone)) == flat::Stone
-    @test onehot_to_stone(stone_to_onehot(cap::Stone)) == cap::Stone
+    @test onehot_to_stone(stone_to_onehot(stand::Stone)) == stand::Stone
+    if TakEnv.CAPSTONE_COUNT > 0
+      @test onehot_to_stone(stone_to_onehot(cap::Stone)) == cap::Stone
+    end
   end
 
   @testset "onehot <-> direction" begin
@@ -56,8 +58,15 @@ using Test
     end
 
     @test begin
+        tmpaction = Action((1,1), stand::Stone, nothing, nothing, placement::ActionType)
+        onehot_to_action(action_to_onehot(tmpaction)) == tmpaction
+    end
+
+    if TakEnv.CAPSTONE_COUNT > 0
+      @test begin
         tmpaction = Action((1,1), cap::Stone, nothing, nothing, placement::ActionType)
         onehot_to_action(action_to_onehot(tmpaction)) == tmpaction
+      end
     end
 
     @test begin
@@ -71,7 +80,7 @@ using Test
     end
 
     @test begin
-        tmpaction = Action((5,5), nothing, west::Direction, possible_carries[end], carry::ActionType)
+        tmpaction = Action((TakEnv.FIELD_SIZE,TakEnv.FIELD_SIZE), nothing, west::Direction, possible_carries[end], carry::ActionType)
         onehot_to_action(action_to_onehot(tmpaction)) == tmpaction
     end
   end
@@ -84,8 +93,15 @@ using Test
     end
 
     @test begin
-        tmpaction = Action((1,1), cap::Stone, nothing, nothing, placement::ActionType)
-        twohot_to_action(action_to_twohot(tmpaction)) == tmpaction
+      tmpaction = Action((1,1), stand::Stone, nothing, nothing, placement::ActionType)
+      twohot_to_action(action_to_twohot(tmpaction)) == tmpaction
+    end
+
+    if TakEnv.CAPSTONE_COUNT > 0
+      @test begin
+          tmpaction = Action((1,1), cap::Stone, nothing, nothing, placement::ActionType)
+          twohot_to_action(action_to_twohot(tmpaction)) == tmpaction
+      end
     end
 
     @test begin
@@ -99,13 +115,13 @@ using Test
     end
 
     @test begin
-        tmpaction = Action((5,5), nothing, west::Direction, possible_carries[end], carry::ActionType)
+        tmpaction = Action((TakEnv.FIELD_SIZE,TakEnv.FIELD_SIZE), nothing, west::Direction, possible_carries[end], carry::ActionType)
         twohot_to_action(action_to_twohot(tmpaction)) == tmpaction
     end
   end
 
   @testset "float_board" begin
-    @test float_board(testboard())[1,1,TakEnv.FIELD_HEIGHT] == (cap::Stone, white::Player)
+    @test float_board(testboard())[1,1,TakEnv.FIELD_HEIGHT] == (stand::Stone, white::Player)
     @test float_board(testboard())[1,1,TakEnv.FIELD_HEIGHT-1] == (flat::Stone, black::Player)
     @test float_board(testboard())[1,1,1] === nothing
     @test unfloat_board(float_board(testboard())) == testboard()
@@ -117,24 +133,29 @@ using Test
 
   @testset "onehot <-> piece" begin
     @test !any(piece_to_onehot(nothing))
-    @test sum(piece_to_onehot((cap::Stone, white::Player))) == 1
+    @test sum(piece_to_onehot((stand::Stone, white::Player))) == 1
     @test onehot_to_piece(piece_to_onehot((flat::Stone, white::Player))) == (flat::Stone, white::Player)
-    @test onehot_to_piece(piece_to_onehot((cap::Stone, white::Player))) == (cap::Stone, white::Player)
-    @test onehot_to_piece(piece_to_onehot((cap::Stone, black::Player))) == (cap::Stone, black::Player)
-    @test onehot_to_piece(falses(6)) === nothing
-    @test onehot_to_piece(vcat(falses(5),[true])) == (cap::Stone, black::Player)
+    @test onehot_to_piece(falses(Encoder.piece_encoding_length)) === nothing
+
+    if TakEnv.CAPSTONE_COUNT > 0
+      @test onehot_to_piece(piece_to_onehot((cap::Stone, white::Player))) == (cap::Stone, white::Player)
+      @test onehot_to_piece(piece_to_onehot((cap::Stone, black::Player))) == (cap::Stone, black::Player)
+      @test onehot_to_piece(vcat(falses(5),[true])) == (cap::Stone, black::Player)
+    else
+      @test onehot_to_piece(vcat(falses(3),[true])) == (stand::Stone, black::Player)
+    end
   end
 
   @testset "onehot <-> toprow" begin
     @test sum(board_top_row_to_onehot(float_board(testboard()))) == 2
-    @test length(board_top_row_to_onehot(float_board(testboard()))) == 6*FIELD_SIZE*FIELD_SIZE
+    @test length(board_top_row_to_onehot(float_board(testboard()))) == Encoder.piece_encoding_length*FIELD_SIZE*FIELD_SIZE
     @test begin
         board = float_board(random_game()[1])
         old_board = copy(board)
         enc = board_top_row_to_onehot(board)
         for x in 1:FIELD_SIZE
             for y in 1:FIELD_SIZE
-                board[x,y,end] = (cap::Stone, black::Player)
+                board[x,y,end] = (stand::Stone, black::Player)
             end
         end
         
@@ -186,7 +207,7 @@ using Test
   # Board to enc is only reversible if no stack is higher than STACK_REPR_HEIGHT
   @testset "enc <-> board" begin
     @test enc_to_board(board_to_enc(testboard())) == testboard()
-    @test length(board_to_enc(random_game()[1])) == FIELD_SIZE*FIELD_SIZE*6+FIELD_SIZE*FIELD_SIZE+FIELD_SIZE*FIELD_SIZE*STACK_REPR_HEIGHT*2
+    @test length(board_to_enc(random_game()[1])) == FIELD_SIZE*FIELD_SIZE*Encoder.piece_encoding_length+FIELD_SIZE*FIELD_SIZE+FIELD_SIZE*FIELD_SIZE*STACK_REPR_HEIGHT*2
   end
 
   @testset "compress/decompress board" begin
@@ -222,6 +243,13 @@ using Test
     @test Encoder.mirror_action_vec(Encoder.mirror_action_vec(action_vec)) == action_vec
     @test Encoder.mirror_action_vec(Encoder.action_to_onehot(action)) == Encoder.action_to_onehot(TakEnv.mirror_action(action))
 
+  end
+
+  @testset "get_valid_moves" begin
+    board = TakEnv.empty_board()
+    @test sum(Encoder.get_valid_moves(board, TakEnv.white::Player)) > 0
+    @test sum(Encoder.get_valid_moves(board, TakEnv.white::Player)) == size(TakEnv.enumerate_actions(board, TakEnv.white::Player), 1)
+    @test size(Encoder.get_valid_moves(board, TakEnv.white::Player), 1) == action_onehot_encoding_length
   end
 end
 end

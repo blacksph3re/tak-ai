@@ -10,6 +10,7 @@ export MCTSStorage, search_batch, mcts_search, evaluate_node
 HParams = Dict{String,Any}
 Float = Float32
 
+
 mutable struct NodeStats
   actions::Vector{CompressedAction}
   visit_counts::Vector{Int}

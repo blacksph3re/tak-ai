@@ -1,5 +1,15 @@
+include("../src/NN.jl")
+include("../src/TakEnv.jl")
+include("../src/Encoder.jl")
+include("../src/TakUI.jl")
+include("../src/TakInterface.jl")
+#include("../src/MCTS.jl")
+
+
 include("TakEnvTest.jl")
 include("EncoderTest.jl")
+include("TakUITest.jl")
 include("TakInterfaceTest.jl")
+include("NNTest.jl")
 #include("MCTSTest.jl")
-#include("ModelTest.jl")
+# include("ModelTest.jl")
