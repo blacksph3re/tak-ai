@@ -97,16 +97,16 @@ function render_board_cmd(board::Board)::String
   board = Encoder.float_board(board)
 
 
-  for x in 1:FIELD_SIZE
+  for y in 1:FIELD_SIZE
     # Render divider
-    if x != 1
+    if y != 1
       print(io, board_color(),join(["-" for _ in 1:row_width]))
       print(io, "\n")
     end
 
     # Render the topmost stone
-    for y in 1:FIELD_SIZE
-      if y != 1
+    for x in 1:FIELD_SIZE
+      if x != 1
         print(io, board_color(), "|")
       end
       if isnothing(board[x,y,FIELD_HEIGHT])
@@ -118,8 +118,8 @@ function render_board_cmd(board::Board)::String
     print(io, "\n")
 
     for stackrow in 1:stackrows
-      for y in 1:FIELD_SIZE
-        if y != 1
+      for x in 1:FIELD_SIZE
+        if x != 1
           print(io, board_color(), "|")
         end
 
@@ -207,6 +207,24 @@ function read_action(input::String)::TakEnv.Action
 
   TakEnv.assert_action(action)
   action
+end
+
+
+
+function perform_move(state::Tuple{Board, Player}, move::String)::Tuple{Board, Player}
+  action = read_action(move)
+  board = copy(state[1])
+  TakEnv.apply_action!(board, action, state[2])
+
+  print("Current player $(state[2] == TakEnv.white ? "white" : "black")\n")
+  print(render_board_cmd(board))
+
+  (board, TakEnv.opponent_player(state[2]))
+end
+
+function enumerate_actions(state::Tuple{Board, Player})
+  actions = action_string.(TakEnv.enumerate_actions(state[1], state[2]))
+  print(actions)
 end
 
 end

@@ -8,6 +8,8 @@ using Flux
 
 @testset "NN.jl" begin
   hparams = Dict(
+    "state_size" => 64,
+    "action_size" => 32,
     "hidden_size" => 128,
     "training_loops" => 2,
     "batch_size" => 4,
@@ -16,7 +18,7 @@ using Flux
   )
 
   @testset "construct model, predict" begin
-    model_data = NN.init(hparams, 64, 32)
+    model_data = NN.init(hparams)
     model = (in) -> NN.predict(model_data, in)
 
     in = falses(64)
@@ -31,7 +33,7 @@ using Flux
   end
 
   @testset "training run" begin
-    model = NN.init(hparams, 64, 32)
+    model = NN.init(hparams)
 
     function randinput()
       x = falses(64)
@@ -49,7 +51,7 @@ using Flux
   end
 
   @testset "saving/loading" begin
-    model = NN.init(hparams, 64, 32)
+    model = NN.init(hparams)
 
     NN.save_model("/tmp/tmp-tak-model.bson", model)
     new_model = NN.load_model("/tmp/tmp-tak-model.bson")

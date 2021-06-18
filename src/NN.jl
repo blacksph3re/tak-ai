@@ -12,10 +12,10 @@ struct ModelStruct
   layer2::Dense
   logitshead::Dense
   valuehead::Dense
-  ModelStruct(hparams, in_size, out_size) = new(
-    Dense(in_size, hparams["hidden_size"], leakyrelu) |> gpu,
+  ModelStruct(hparams) = new(
+    Dense(hparams["state_size"], hparams["hidden_size"], leakyrelu) |> gpu,
     Dense(hparams["hidden_size"], hparams["hidden_size"], leakyrelu) |> gpu,
-    Dense(hparams["hidden_size"], out_size) |> gpu,
+    Dense(hparams["hidden_size"], hparams["action_size"]) |> gpu,
     Dense(hparams["hidden_size"], 1, tanh) |> gpu,
   )
 end
@@ -31,8 +31,8 @@ end
 Flux.trainable(model::ModelStruct) = (model.layer1, model.layer2, model.logitshead, model.valuehead)
 
 
-function init(hparams::HParams, state_encoding_length::Int, action_encoding_length::Int)::ModelStruct
-  model = ModelStruct(hparams, state_encoding_length, action_encoding_length) |> gpu
+function init(hparams::HParams)::ModelStruct
+  model = ModelStruct(hparams) |> gpu
   model.layer1.b .= randn(hparams["hidden_size"]) .* 0.1
   model
 end

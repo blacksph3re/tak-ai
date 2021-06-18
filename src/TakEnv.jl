@@ -2,6 +2,7 @@
 
 module TakEnv
 
+using Base: Bool
 export Action, Result, Board, CarryType
 export empty_board, enumerate_actions, apply_action!, check_win, check_stalemate, render_board, random_game, opponent_player
 export Stone, Player, Direction, ActionType, ResultType
@@ -147,6 +148,11 @@ function stack_height_less_than(board::Board, pos::NTuple{2, Int}, max::Int)::Bo
     return false
 end
 
+# Checks whether the first two stones have been played already
+function first_two_played(board::Board)::Bool
+    sum((!).(isnothing.(board))) >= 2
+end
+
 function opponent_player(player::Player)::Player
   Player((Int(player)+1)%2)
 end
@@ -155,7 +161,8 @@ end
 function rotate_board(board::Board, rotations::Int)::Board
     board2 = copy(board)
     for i in 1:TakEnv.FIELD_HEIGHT
-        board2[:,:,i] = rotl90(board[:,:,i], rotations)
+        # For some mystic reason we have to use rotr90 to rotate counter clockwise
+        board2[:,:,i] = rotr90(board[:,:,i], rotations)
     end
     board2
 end
@@ -229,27 +236,36 @@ function invert_board(board::Board)::Board
 end
 
 
-
+# Asserts whether the action format is valid. 
+# Throws if there is a format error
+# Note that the action could still be an invalid action in a board
+# For this, use enumerate_actions
 function assert_action(a::Action)
-    @assert a.dir != north::Direction || a.pos[2] != 1 "can't move north with y=1"
-    @assert a.dir != south::Direction || a.pos[2] != FIELD_SIZE "can't move south with y=FIELD_SIZE"
-    @assert a.dir != east::Direction || a.pos[1] != FIELD_SIZE "can't move east with x=FIELD_SIZE"
-    @assert a.dir != west::Direction || a.pos[1] != 1 "can't move west with x=1"
-
     @assert a.pos[1] <= FIELD_SIZE && a.pos[1] >= 1 "invalid x position"
     @assert a.pos[2] <= FIELD_SIZE && a.pos[2] >= 1 "invalid y position"
 
-    @assert a.action_type != placement::ActionType || !isnothing(a.stone) "a placement needs a stone"
-    @assert a.action_type != carry::ActionType || (!isnothing(a.dir) && !isnothing(a.carry)) "a carry needs a carry and a dir"
+    @assert a.action_type == placement::ActionType || a.action_type == carry::ActionType "invalid action type"
 
-    @assert !(isnothing(a.stone) && isnothing(a.dir) && isnothing(a.carry)) "At least one action type needs data"
-    @assert !(!isnothing(a.stone) && (!isnothing(a.dir) || !isnothing(a.carry))) "If it's a placement, it can't have a move or carry"
-    @assert a.action_type != carry::ActionType || (!isnothing(a.carry) && !isnothing(a.dir)) "If it's a carry, it needs a direction and carry tuple"
+    if a.action_type == placement::ActionType
+        @assert !isnothing(a.stone) "a placement needs a stone"
+        @assert isnothing(a.dir) "placements don't need directions"
+        @assert isnothing(a.carry) "placements don't need drops"
+        if CAPSTONE_COUNT == 0
+            @assert a.stone != cap::Stone "no capstones allowed on this board"
+        end
+    else
+        @assert !isnothing(a.dir) "a move needs a direction"
+        @assert !isnothing(a.carry) "a move needs a carry tuple"
+        @assert isnothing(a.stone) "a move doesn't need a placement stone type"
 
-    @assert sum(a.carry) <= FIELD_SIZE "too many stones carried"
-    @assert isnothing(a.carry) || !isnothing(findfirst(c -> c == a.carry, possible_carries)) "Impossible carry"
+        @assert sum(a.carry) <= FIELD_SIZE "too many stones carried"
+        @assert !isnothing(findfirst(c -> c == a.carry, possible_carries)) "Impossible carry"
 
-    if a.action_type == carry::ActionType
+        @assert a.dir != north::Direction || a.pos[2] != 1 "can't move north with y=1"
+        @assert a.dir != south::Direction || a.pos[2] != FIELD_SIZE "can't move south with y=FIELD_SIZE"
+        @assert a.dir != east::Direction || a.pos[1] != FIELD_SIZE "can't move east with x=FIELD_SIZE"
+        @assert a.dir != west::Direction || a.pos[1] != 1 "can't move west with x=1"
+
         distance = count(a.carry .!= 0)
         endpos = if a.dir == north::Direction
             (a.pos[1], a.pos[2]-distance)
@@ -261,7 +277,7 @@ function assert_action(a::Action)
             (a.pos[1]-distance, a.pos[2])
         end
 
-        @assert endpos[1] <= FIELD_SIZE && endpos[1] >= 1 "Carry end $(endpos) board dimensions"
+        @assert endpos[1] <= FIELD_SIZE && endpos[1] >= 1 "Carry end $(endpos) outside board dimensions"
         @assert endpos[2] <= FIELD_SIZE && endpos[2] >= 1 "Carry end $(endpos) outside board dimensions"
     end
 
@@ -376,6 +392,8 @@ function enumerate_actions(board::Board, player::Player)::Array{Action,1}
     sizehint!(retval, 50)
     
     stats = board_statistics(board, player)
+    
+    start_phase = !first_two_played(board)
 
     # Enumerate all possible carries
     for x in 1:FIELD_SIZE
@@ -383,9 +401,11 @@ function enumerate_actions(board::Board, player::Player)::Array{Action,1}
             if isnothing(board[x, y, 1])
                 if stats[flat::Stone] + stats[stand::Stone] < NORMAL_PIECE_COUNT
                     push!(retval, Action((x,y), flat::Stone, nothing, nothing, placement::ActionType))
-                    push!(retval, Action((x,y), stand::Stone, nothing, nothing, placement::ActionType))
+                    if !start_phase # During the start phase, only flat stones
+                        push!(retval, Action((x,y), stand::Stone, nothing, nothing, placement::ActionType))
+                    end
                 end
-                if stats[cap::Stone] < CAPSTONE_COUNT
+                if stats[cap::Stone] < CAPSTONE_COUNT && !start_phase
                     push!(retval, Action((x,y), cap::Stone, nothing, nothing, placement::ActionType))
                 end
             else
@@ -419,14 +439,10 @@ end
 # Apply an acction
 # Does not check for validity of that action, do so with enumerate_actions
 function apply_action!(board::Board, action::Action, player::Player)
-  statistics = board_statistics(board, player)
-  all_statistics = board_statistics(board, nothing)
-  
-  total_stones = sum([i[2][2] for i in enumerate(all_statistics)])
-  
+
   if action.action_type == placement::ActionType
     @assert isnothing(board[action.pos[1], action.pos[2], 1])
-    if total_stones < 2 # The first two rounds you place the opponents stone
+    if !first_two_played(board) # The first two rounds you place the opponents stone
         board[action.pos[1], action.pos[2], 1] = (action.stone, opponent_player(player))
     else
         board[action.pos[1], action.pos[2], 1] = (action.stone, player)
@@ -435,10 +451,23 @@ function apply_action!(board::Board, action::Action, player::Player)
     # Treat the (-1,0,0,0) carry separately
     if action.carry[1] == -1
         newpos = translate_pos(action.pos, action.dir)
+        picked_up_stack = []
         for z in 1:FIELD_HEIGHT
-            board[newpos[1], newpos[2], z] = board[action.pos[1], action.pos[2], z]
+            if isnothing(board[action.pos[1], action.pos[2], z])
+                break
+            end
+            push!(picked_up_stack, board[action.pos[1], action.pos[2], z])
             board[action.pos[1], action.pos[2], z] = nothing
         end
+
+        top = get_stack_height(board, newpos)
+
+        @assert length(picked_up_stack) + top <= FIELD_HEIGHT "Stack exceeds field height"
+
+        for (i, stone) in enumerate(picked_up_stack)
+            board[newpos[1], newpos[2], top+i] = stone
+        end
+
     else
         # First pick up stones from the origin stack
         picked_up_stack = []
@@ -464,12 +493,14 @@ function apply_action!(board::Board, action::Action, player::Player)
             
             top = get_stack_height(board, curpos)
             
+            # Check for flatting move
             if top >= 1 && stone_type(board[curpos[1], curpos[2], top]) == stand::Stone
-                @assert stone_type(last(picked_up_stack)) == cap::Stone
+                @assert stone_type(last(picked_up_stack)) == cap::Stone "Only a cap stone can flatten a stand stone"
                 board[curpos[1], curpos[2], top] = (flat::Stone, stone_player(board[curpos[1], curpos[2], top]))
             end
             
             for i in 1:c
+                @assert top+i <= FIELD_HEIGHT "Stack exceeded field height"
                 board[curpos[1], curpos[2], top+i] = pop!(picked_up_stack)
             end
         end

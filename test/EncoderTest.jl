@@ -227,7 +227,7 @@ using Test
   @testset "rotation, mirroring" begin
     @test sum(Encoder.action_onehot_rotation_map) == sum(1:Encoder.action_onehot_encoding_length)
 
-    board = testboard()
+    board = TakEnv.random_game(10)[1]
     action_vec = reduce(.|, Encoder.action_to_onehot.(TakEnv.enumerate_actions(board, TakEnv.white::Player)))
     @test Encoder.rotate_action_vec(action_vec) != action_vec
     tmp_vec = Encoder.rotate_action_vec(action_vec)
@@ -243,6 +243,14 @@ using Test
     @test Encoder.mirror_action_vec(Encoder.mirror_action_vec(action_vec)) == action_vec
     @test Encoder.mirror_action_vec(Encoder.action_to_onehot(action)) == Encoder.action_to_onehot(TakEnv.mirror_action(action))
 
+
+    board_rotated = TakEnv.rotate_board(board)
+    action_vec_rotated = reduce(.|, Encoder.action_to_onehot.(TakEnv.enumerate_actions(board_rotated, TakEnv.white::Player)))
+    @test Encoder.rotate_action_vec(action_vec) == action_vec_rotated
+
+    board_mirrored = TakEnv.mirror_board(board)
+    action_vec_mirrored = reduce(.|, Encoder.action_to_onehot.(TakEnv.enumerate_actions(board_mirrored, TakEnv.white::Player)))
+    @test Encoder.mirror_action_vec(action_vec) == action_vec_mirrored
   end
 
   @testset "get_valid_moves" begin

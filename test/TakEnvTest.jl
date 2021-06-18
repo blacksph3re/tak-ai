@@ -123,7 +123,13 @@ using ..TakEnv
 
 
   @testset "enumerate_actions" begin
-    @test length(enumerate_actions(Board(undef, TakEnv.FIELD_SIZE, TakEnv.FIELD_SIZE, TakEnv.FIELD_HEIGHT), TakEnv.white::Player)) == TakEnv.FIELD_SIZE ^ 2 * (TakEnv.CAPSTONE_COUNT > 0 ? 3 : 2)
+    # enumerate_actions should give flat actions only in the first round
+    @test length(enumerate_actions(Board(undef, TakEnv.FIELD_SIZE, TakEnv.FIELD_SIZE, TakEnv.FIELD_HEIGHT), TakEnv.white::Player)) == TakEnv.FIELD_SIZE ^ 2
+
+    # enumerate actions should be rotation and mirroring invariant (ordering doesn't matter)
+    board = TakEnv.random_game(10)[1]
+    @test Set(enumerate_actions(board, TakEnv.white::Player)) == Set(TakEnv.rotate_action.(enumerate_actions(TakEnv.rotate_board(board, 3), TakEnv.white::Player)))
+    @test Set(enumerate_actions(board, TakEnv.white::Player)) == Set(TakEnv.mirror_action.(enumerate_actions(TakEnv.mirror_board(board), TakEnv.white::Player)))
 
     if TakEnv.FIELD_SIZE >= 5
       @test begin
@@ -165,6 +171,20 @@ using ..TakEnv
       @test TakEnv.get_stack_height(apply_action!(testboard(), Action((2, 1), nothing, TakEnv.west::Direction, (2,0,0,0), TakEnv.carry::ActionType), TakEnv.black::Player), (1,1)) == 2
       @test TakEnv.get_stack_height(apply_action!(testboard(), Action((2, 1), nothing, TakEnv.west::Direction, (2,0,0,0), TakEnv.carry::ActionType), TakEnv.black::Player), (2,1)) == 1
       @test TakEnv.stone_type(apply_action!(testboard(), Action((2,1), nothing, TakEnv.south::Direction, (1,0,0,0), TakEnv.carry::ActionType), TakEnv.black::Player)[2, 2, 1]) == TakEnv.flat::Stone
+
+      # Play a small game
+      board = empty_board()
+      apply_action!(board, Action((3,4), TakEnv.flat::Stone, nothing, nothing, TakEnv.placement::ActionType), TakEnv.white)
+      @test board[3,4,1] == (TakEnv.flat::Stone, TakEnv.black::Player) # Black because first two stones are inverted
+      apply_action!(board, Action((3,3), TakEnv.flat::Stone, nothing, nothing, TakEnv.placement::ActionType), TakEnv.black)
+      @test board[3,3,1] == (TakEnv.flat::Stone, TakEnv.white::Player)
+      apply_action!(board, Action((3,3), nothing, TakEnv.south::Direction, (-1,0,0,0), TakEnv.carry::ActionType), TakEnv.white)
+
+      @test board[3,4,1] == (TakEnv.flat::Stone, TakEnv.black::Player)
+      @test board[3,4,2] == (TakEnv.flat::Stone, TakEnv.white::Player)
+      @test sum((!).(isnothing.(board[:,:,1]))) == 1 # One stone in the first layer
+      @test sum((!).(isnothing.(board[:,:,2]))) == 1 # One in the second layer
+
     end
   end
 

@@ -2,6 +2,7 @@
 
 module TakInterface
 
+using Base: Float32
 import AlphaZero.GI
 
 using Crayons
@@ -57,7 +58,7 @@ function GI.current_state(g::TakGame)::StateType
 end
 
 function GI.game_terminated(g::TakGame)::Bool
-  isnothing(g.result)
+  !isnothing(g.result)
 end
 
 function GI.white_playing(g::TakGame)::Bool
@@ -76,12 +77,12 @@ function GI.play!(g::TakGame, action_idx)
   action = falses(Encoder.action_onehot_encoding_length)
   action[action_idx] = 1
 
-  TakEnv.apply_action!(g.board, action, g.curplayer)
+  TakEnv.apply_action!(g.board, Encoder.onehot_to_action(action), g.curplayer)
   g.result = TakEnv.check_win(g.board, g.curplayer)
   g.curplayer = TakEnv.opponent_player(g.curplayer)
 end
 
-const SCORE_TABLE = Dict{TakEnv.ResultType, Float32}(
+const SCORE_TABLE = Dict{TakEnv.ResultType, Float64}(
   TakEnv.flat_win::ResultType => 0.9,
   TakEnv.road_win::ResultType => 1,
   TakEnv.double_road_win::ResultType => 1,
@@ -89,7 +90,7 @@ const SCORE_TABLE = Dict{TakEnv.ResultType, Float32}(
   TakEnv.stalemate::ResultType => 0,
 )
 
-function GI.white_reward(g::TakGame)::Float32
+function GI.white_reward(g::TakGame)::Float64
   if isnothing(g.result)
     0
   else
@@ -99,6 +100,11 @@ function GI.white_reward(g::TakGame)::Float32
     end
     score
   end
+end
+
+# TODO redefine
+function GI.heuristic_value(g::TakGame)::Float64
+  0.0
 end
 
 function GI.symmetries(::TakSpec, state)::Array{Tuple{StateType, Vector{Int}}}

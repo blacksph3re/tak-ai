@@ -4,3 +4,4 @@ statprof
 *.bson
 papers
 julia-1.5.4
+sessions
