@@ -606,10 +606,12 @@ end
 # Returns an action vector with a bit set for every allowed action
 function get_valid_moves(board::TakEnv.Board, player::TakEnv.Player)::BitVector
 
-  possible_actions = Encoder.action_to_onehot.(TakEnv.enumerate_actions(board, player))
+  retval = falses(action_onehot_encoding_length)
+  for action in TakEnv.enumerate_actions(board, player)
+    retval .|= Encoder.action_to_onehot(action)
+  end
 
-  # Reduce one-hot encoded actions with bitwise or
-  reduce(.|, possible_actions, init=falses(action_onehot_encoding_length))
+  retval
 end
 
 end

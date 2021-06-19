@@ -20,13 +20,13 @@ export white, black
 # const NORMAL_PIECE_COUNT=30
 # const CAPSTONE_COUNT = 1
 
-const FIELD_SIZE = 5
-const NORMAL_PIECE_COUNT = 21
-const CAPSTONE_COUNT = 1
+# const FIELD_SIZE = 5
+# const NORMAL_PIECE_COUNT = 21
+# const CAPSTONE_COUNT = 1
 
-# const FIELD_SIZE=4
-# const NORMAL_PIECE_COUNT=15
-# const CAPSTONE_COUNT=0
+const FIELD_SIZE=4
+const NORMAL_PIECE_COUNT=15
+const CAPSTONE_COUNT=0
 
 # const FIELD_SIZE=3
 # const NORMAL_PIECE_COUNT=10
@@ -149,8 +149,15 @@ function stack_height_less_than(board::Board, pos::NTuple{2, Int}, max::Int)::Bo
 end
 
 # Checks whether the first two stones have been played already
+# These two must be on the first layer
 function first_two_played(board::Board)::Bool
-    sum((!).(isnothing.(board))) >= 2
+    sum = 0
+    for x in 1:FIELD_SIZE
+        for y in 1:FIELD_SIZE
+            sum += !isnothing(board[x,y,1])
+        end
+    end
+    sum >= 2
 end
 
 function opponent_player(player::Player)::Player
@@ -379,10 +386,13 @@ end
 
 function check_carry(board::Board, pos::NTuple{2, Int}, dir::Direction, carry::CarryType, topstone::Stone)::Bool
     if carry[1] == -1
-        return get_stack_height(board, pos) > FIELD_SIZE && check_carry_rec(board, pos, dir, carry, stone_type(get_top_stone(board, pos)))
+        # The commented out version will inhibit the -1 carry if the stack is not high enough
+        # Without the inhibiting, different moves can lead to the same state
+        get_stack_height(board, pos) > FIELD_SIZE && check_carry_rec(board, pos, dir, carry, stone_type(get_top_stone(board, pos)))
+        #check_carry_rec(board, pos, dir, carry, stone_type(get_top_stone(board, pos)))
+    else
+        check_carry_rec(board, pos, dir, carry, topstone)
     end
-
-    check_carry_rec(board, pos, dir, carry, topstone)
 end
 
 
@@ -398,7 +408,7 @@ function enumerate_actions(board::Board, player::Player)::Array{Action,1}
     # Enumerate all possible carries
     for x in 1:FIELD_SIZE
         for y in 1:FIELD_SIZE
-            if isnothing(board[x, y, 1])
+            if isnothing(board[x, y, 1]) # Check for placements
                 if stats[flat::Stone] + stats[stand::Stone] < NORMAL_PIECE_COUNT
                     push!(retval, Action((x,y), flat::Stone, nothing, nothing, placement::ActionType))
                     if !start_phase # During the start phase, only flat stones
@@ -408,7 +418,8 @@ function enumerate_actions(board::Board, player::Player)::Array{Action,1}
                 if stats[cap::Stone] < CAPSTONE_COUNT && !start_phase
                     push!(retval, Action((x,y), cap::Stone, nothing, nothing, placement::ActionType))
                 end
-            else
+            #elseif false
+            elseif !start_phase # Check for movements
                 top_stone = get_top_stone(board, (x, y))
                 if stone_player(top_stone) == player
                     stack_height = get_stack_height(board, (x,y))

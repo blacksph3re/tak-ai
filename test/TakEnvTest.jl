@@ -158,6 +158,15 @@ using ..TakEnv
         @test (Action((2, 2), nothing, TakEnv.east::Direction, (1,0,0,0), TakEnv.carry) in TakEnv.enumerate_actions(testboard(), TakEnv.white::Player))
         @test (Action((5, 4), nothing, TakEnv.north::Direction, (2,2,1,0), TakEnv.carry) in TakEnv.enumerate_actions(testboard(), TakEnv.white::Player))
         @test (Action((5, 4), nothing, TakEnv.west::Direction, (-1,0,0,0), TakEnv.carry) in TakEnv.enumerate_actions(testboard(), TakEnv.white::Player))
+
+
+        board = TakEnv.empty_board()
+        board[2,3,1] = (TakEnv.cap::Stone, TakEnv.white::Player)
+        board[3,3,1] = (TakEnv.stand::Stone, TakEnv.white::Player)
+        @test Action((2, 3), nothing, TakEnv.south::Direction, (1,0,0,0), TakEnv.carry) in TakEnv.enumerate_actions(board, TakEnv.white::Player)
+        # If the full stack carry isn't inhibited, we have two actions doing the same thing
+        # See TakEnv.check_carry for more info
+        #@test Action((2, 3), nothing, TakEnv.south::Direction, (-1,0,0,0), TakEnv.carry) in TakEnv.enumerate_actions(board, TakEnv.white::Player)
       end
     end
   end

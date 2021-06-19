@@ -123,7 +123,7 @@ function render_board_cmd(board::Board)::String
           print(io, board_color(), "|")
         end
 
-        startidx = (stackrow - 1) * CMD_CELL_WIDTH + 1
+        startidx = (stackrow - 1) * CMD_CELL_WIDTH
         for i in 1:CMD_CELL_WIDTH
           if startidx + i >= FIELD_HEIGHT
             print(io, " ")
@@ -209,7 +209,9 @@ function read_action(input::String)::TakEnv.Action
   action
 end
 
-
+function init_state()
+  (TakEnv.empty_board(), TakEnv.white)
+end
 
 function perform_move(state::Tuple{Board, Player}, move::String)::Tuple{Board, Player}
   action = read_action(move)
@@ -223,8 +225,12 @@ function perform_move(state::Tuple{Board, Player}, move::String)::Tuple{Board, P
 end
 
 function enumerate_actions(state::Tuple{Board, Player})
+  io = IOBuffer()
+
   actions = action_string.(TakEnv.enumerate_actions(state[1], state[2]))
-  print(actions)
+  print(io, actions)
+
+  String(take!(io))
 end
 
 end

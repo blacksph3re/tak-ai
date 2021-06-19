@@ -83,7 +83,7 @@ function GI.play!(g::TakGame, action_idx)
 end
 
 const SCORE_TABLE = Dict{TakEnv.ResultType, Float64}(
-  TakEnv.flat_win::ResultType => 0.9,
+  TakEnv.flat_win::ResultType => 1,
   TakEnv.road_win::ResultType => 1,
   TakEnv.double_road_win::ResultType => 1,
   TakEnv.draw::ResultType => 0,

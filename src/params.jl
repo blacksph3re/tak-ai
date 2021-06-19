@@ -7,7 +7,7 @@ using AlphaZero
 Network = NetLib.SimpleNet
 
 netparams = NetLib.SimpleNetHP(
-  width=256,
+  width=64,
   depth_common=6,
   use_batch_norm=true,
   batch_norm_momentum=1.)
@@ -15,8 +15,8 @@ netparams = NetLib.SimpleNetHP(
 self_play = SelfPlayParams(
   sim=SimParams(
     num_games=5000,
-    num_workers=128,
-    batch_size=64,
+    num_workers=8,
+    batch_size=8,
     use_gpu=true,
     reset_every=2,
     flip_probability=0.,
@@ -32,8 +32,8 @@ self_play = SelfPlayParams(
 arena = ArenaParams(
   sim=SimParams(
     num_games=128,
-    num_workers=128,
-    batch_size=128,
+    num_workers=8,
+    batch_size=8,
     use_gpu=true,
     reset_every=2,
     flip_probability=0.5,
@@ -58,7 +58,7 @@ learning = LearningParams(
   num_checkpoints=1)
 
 mem_analysis = MemAnalysisParams(
-  1000
+  10
 )
 
 params = Params(
@@ -95,9 +95,9 @@ network_player = Benchmark.NetworkOnly(τ=0.5)
 
 benchmark_sim = SimParams(
   arena.sim;
-  num_games=256,
-  num_workers=256,
-  batch_size=256,
+  num_games=64,
+  num_workers=8,
+  batch_size=8,
   alternate_colors=false)
 
 benchmark = [
