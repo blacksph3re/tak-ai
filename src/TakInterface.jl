@@ -13,9 +13,13 @@ using ..TakUI
 
 const COMPRESSION_ACTIVE = true
 
-compress_board = COMPRESSION_ACTIVE ? Encoder.compress_board : identity
-decompress_board = COMPRESSION_ACTIVE ? Encoder.decompress_board : identity
-StateType = COMPRESSION_ACTIVE ? Tuple{Encoder.CompressedBoard, TakEnv.Player, UInt16} : Tuple{Encoder.BoardEnc, TakEnv.Player, UInt16}
+const compress_board = COMPRESSION_ACTIVE ? Encoder.compress_board : identity
+const decompress_board = COMPRESSION_ACTIVE ? Encoder.decompress_board : identity
+const StateType = COMPRESSION_ACTIVE ? Tuple{Encoder.CompressedBoard, TakEnv.Player, UInt16} : Tuple{TakEnv.Board, TakEnv.Player, UInt16}
+
+const USE_RESNET = true
+const encode_board = USE_RESNET ? Encoder.board_to_conv_enc : Encoder.board_to_enc
+
 
 struct TakSpec <: GI.AbstractGameSpec end
 
@@ -34,10 +38,12 @@ GI.state_type(::TakSpec) = StateType
 function GI.vectorize_state(::TakSpec, state)::Array{Float32}
   board, player, _ = state
   board = decompress_board(board)
+
   if player == TakEnv.black::Player
     board = TakEnv.invert_board(board)
   end
-  convert.(Float32, Encoder.board_to_enc(board))
+
+  convert.(Float32, encode_board(board))
 end
 
 function GI.init(::TakSpec)::TakGame
@@ -57,7 +63,7 @@ function GI.set_state!(g::TakGame, s)
 end
 
 function GI.current_state(g::TakGame)::StateType
-  (Encoder.compress_board(g.board), g.curplayer, g.timer)
+  (compress_board(g.board), g.curplayer, g.timer)
 end
 
 function GI.game_terminated(g::TakGame)::Bool

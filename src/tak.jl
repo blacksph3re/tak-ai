@@ -7,4 +7,6 @@ include("TakUI.jl")
 include("TakInterface.jl")
 include("params.jl")
 
+export TakEnv, Encoder, TakInterface, TakUI, experiment
+
 end

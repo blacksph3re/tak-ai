@@ -24,13 +24,13 @@ export white, black
 # const NORMAL_PIECE_COUNT = 21
 # const CAPSTONE_COUNT = 1
 
-const FIELD_SIZE=4
-const NORMAL_PIECE_COUNT=15
-const CAPSTONE_COUNT=0
-
-# const FIELD_SIZE=3
-# const NORMAL_PIECE_COUNT=10
+# const FIELD_SIZE=4
+# const NORMAL_PIECE_COUNT=15
 # const CAPSTONE_COUNT=0
+
+const FIELD_SIZE=3
+const NORMAL_PIECE_COUNT=10
+const CAPSTONE_COUNT=0
 
 
 # A score which is added to black when evaluating a flat win to compensate first-player-advantage

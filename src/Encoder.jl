@@ -672,4 +672,15 @@ function board_to_conv_enc(board::TakEnv.Board, player::TakEnv.Player)::BitArray
   )
 end
 
+# Returns a convolution-optimized encoding of the board without the current player layer
+function board_to_conv_enc(board::TakEnv.Board)::BitArray{3}
+  board = float_board(board)
+
+  cat(
+    conv_color_enc(board, TakEnv.white),
+    conv_color_enc(board, TakEnv.black),
+    dims=3
+  )
+end
+
 end

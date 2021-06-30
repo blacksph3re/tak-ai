@@ -4,13 +4,24 @@
 
 using AlphaZero
 
-Network = NetLib.SimpleNet
+# Network = NetLib.SimpleNet
 
-netparams = NetLib.SimpleNetHP(
-  width=64,
-  depth_common=6,
-  use_batch_norm=true,
-  batch_norm_momentum=1.)
+# netparams = NetLib.SimpleNetHP(
+#   width=64,
+#   depth_common=6,
+#   use_batch_norm=true,
+#   batch_norm_momentum=1.)
+
+Network = NetLib.ResNet 
+
+netparams = NetLib.ResNetHP(
+  num_filters=256,
+  num_blocks=10,
+  conv_kernel_size=(3, 3),
+  num_policy_head_filters=32,
+  num_value_head_filters=32,
+  batch_norm_momentum=0.1
+)
 
 self_play = SelfPlayParams(
   sim=SimParams(
