@@ -259,5 +259,16 @@ using Test
     @test sum(Encoder.get_valid_moves(board, TakEnv.white::Player)) == size(TakEnv.enumerate_actions(board, TakEnv.white::Player), 1)
     @test size(Encoder.get_valid_moves(board, TakEnv.white::Player), 1) == action_onehot_encoding_length
   end
+
+  @testset "board_to_conv_enc" begin
+    board = testboard()
+    enc = Encoder.board_to_conv_enc(board, TakEnv.white::Player)
+    
+    @test enc[1,1,1] == true
+    @test enc[1,1,2] == true
+    @test sum(enc) == 5 + TakEnv.FIELD_SIZE^2
+    @test sum(Encoder.board_to_conv_enc(board, TakEnv.black::Player)) == 5
+
+  end
 end
 end

@@ -15,7 +15,7 @@ const COMPRESSION_ACTIVE = true
 
 compress_board = COMPRESSION_ACTIVE ? Encoder.compress_board : identity
 decompress_board = COMPRESSION_ACTIVE ? Encoder.decompress_board : identity
-StateType = COMPRESSION_ACTIVE ? Tuple{Encoder.CompressedBoard, TakEnv.Player} : Tuple{Encoder.BoardEnc, TakEnv.Player}
+StateType = COMPRESSION_ACTIVE ? Tuple{Encoder.CompressedBoard, TakEnv.Player, UInt16} : Tuple{Encoder.BoardEnc, TakEnv.Player, UInt16}
 
 struct TakSpec <: GI.AbstractGameSpec end
 
@@ -23,6 +23,7 @@ mutable struct TakGame <: GI.AbstractGameEnv
   board :: TakEnv.Board
   curplayer :: TakEnv.Player
   result :: Union{Nothing, TakEnv.Result}
+  timer :: UInt16
 end
 
 GI.spec(::TakGame) = TakSpec()
@@ -31,7 +32,7 @@ GI.actions(::TakSpec) = collect(1:Encoder.action_onehot_encoding_length)
 GI.state_type(::TakSpec) = StateType
 
 function GI.vectorize_state(::TakSpec, state)::Array{Float32}
-  board, player = state
+  board, player, _ = state
   board = decompress_board(board)
   if player == TakEnv.black::Player
     board = TakEnv.invert_board(board)
@@ -43,7 +44,8 @@ function GI.init(::TakSpec)::TakGame
   TakGame(
     TakEnv.empty_board(),
     TakEnv.white::Player,
-    nothing
+    nothing,
+    0
   )
 end
 
@@ -51,10 +53,11 @@ function GI.set_state!(g::TakGame, s)
   g.board = decompress_board(s[1])
   g.curplayer = s[2]
   g.result = TakEnv.check_win(g.board, g.curplayer)
+  g.timer = s[3]
 end
 
 function GI.current_state(g::TakGame)::StateType
-  (Encoder.compress_board(g.board), g.curplayer)
+  (Encoder.compress_board(g.board), g.curplayer, g.timer)
 end
 
 function GI.game_terminated(g::TakGame)::Bool
@@ -79,7 +82,15 @@ function GI.play!(g::TakGame, action_idx)
 
   TakEnv.apply_action!(g.board, Encoder.onehot_to_action(action), g.curplayer)
   g.result = TakEnv.check_win(g.board, g.curplayer)
-  g.curplayer = TakEnv.opponent_player(g.curplayer)
+  g.timer += 1
+  if g.timer >= 500
+    g.result = (TakEnv.stalemate::ResultType, nothing)
+  end
+
+  if isnothing(g.result)
+    g.curplayer = TakEnv.opponent_player(g.curplayer)
+  end
+
 end
 
 const SCORE_TABLE = Dict{TakEnv.ResultType, Float64}(
@@ -108,18 +119,18 @@ function GI.heuristic_value(g::TakGame)::Float64
 end
 
 function GI.symmetries(::TakSpec, state)::Array{Tuple{StateType, Vector{Int}}}
-  board, player = state
+  board, player, timer = state
   actions = collect(1:Encoder.action_onehot_encoding_length)
 
-  symmetries = [((board, player), actions)]
+  symmetries = [((board, player, timer), actions)]
 
   board = decompress_board(board)
-  push!(symmetries, ((compress_board(TakEnv.mirror_board(board)), player), Encoder.mirror_action_vec(actions)))
+  push!(symmetries, ((compress_board(TakEnv.mirror_board(board)), player, timer), Encoder.mirror_action_vec(actions)))
   for _ in 1:3
     board = TakEnv.rotate_board(board)
     actions = Encoder.rotate_action_vec(actions)
-    push!(symmetries, ((compress_board(board), player), actions))
-    push!(symmetries, ((compress_board(TakEnv.mirror_board(board)), player), Encoder.mirror_action_vec(actions)))
+    push!(symmetries, ((compress_board(board), player, timer), actions))
+    push!(symmetries, ((compress_board(TakEnv.mirror_board(board)), player, timer), Encoder.mirror_action_vec(actions)))
   end
   unique(symmetries)
 end

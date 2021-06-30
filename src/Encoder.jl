@@ -76,6 +76,22 @@
 
 # ---------------------------------------------------------------
 
+# Another way of encoding everything more optimized for a convolutional network would be to stack several information layers
+# Each layer consists of booleans, the output is a bitmatrix of FIELD_SIZE x FiELD_SIZE x 2*(3+stack_height)
+# <stack owned by white>
+# <stack topped by white standstone>
+# <stack topped by white capstone>
+# <white stone 1 below topstone>
+# <white stone 2 below topstone>
+# ...
+# <stack owned by black>
+# <stack topped by black standstone>
+# <stack topped by black capstone>
+# <black stone 1 below topstone>
+# ...
+# <white's turn>
+
+
 # Include should happen separately
 #include("TakEnv.jl")
 
@@ -612,6 +628,48 @@ function get_valid_moves(board::TakEnv.Board, player::TakEnv.Player)::BitVector
   end
 
   retval
+end
+
+# Helper function for board_to_conv_enc
+# The passed board should be floated
+function conv_color_enc(board::TakEnv.Board, color::TakEnv.Player)::BitArray{3}
+  retval = falses((TakEnv.FIELD_SIZE, TakEnv.FIELD_SIZE, STACK_REPR_HEIGHT + (TakEnv.CAPSTONE_COUNT > 0 ? 3 : 2)))
+
+  # Check for top stone ownership
+  for x in 1:TakEnv.FIELD_SIZE
+    for y in 1:TakEnv.FIELD_SIZE
+      own_stack = TakEnv.stone_player(board[x,y,end]) == color
+
+      retval[x,y,1] = own_stack
+      retval[x,y,2] = own_stack && TakEnv.stone_type(board[x,y,end]) == TakEnv.stand
+      retval[x,y,3] = own_stack && TakEnv.stone_type(board[x,y,end]) == TakEnv.cap
+    end
+  end
+
+  z_iter = TakEnv.CAPSTONE_COUNT > 0 ? 3 : 2
+
+  for z in 1:STACK_REPR_HEIGHT
+    for y in 1:TakEnv.FIELD_SIZE
+      for x in 1:TakEnv.FIELD_SIZE
+        retval[x,y,z+z_iter] = TakEnv.stone_player(board[x,y,end-z]) == color
+      end
+    end
+  end
+
+  retval
+end
+
+# Returns a convolution-optimized encoding of the board
+function board_to_conv_enc(board::TakEnv.Board, player::TakEnv.Player)::BitArray{3}
+  board = float_board(board)
+  player_indicator = player == TakEnv.white ? trues((FIELD_SIZE, FIELD_SIZE, 1)) : falses((FIELD_SIZE, FIELD_SIZE, 1))
+
+  cat(
+    conv_color_enc(board, TakEnv.white),
+    conv_color_enc(board, TakEnv.black),
+    player_indicator,
+    dims=3
+  )
 end
 
 end
